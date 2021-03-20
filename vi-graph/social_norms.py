@@ -3,6 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+from torchvision import transforms
 
 dtype = torch.float32
 
@@ -25,7 +26,7 @@ colors = ["white", "blue", "orange", "yellow", "green"]
 
 sns.heatmap(grid_map, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False,
 	annot=False, cbar = False, annot_kws={"size": 30}, linewidths=1, linecolor="gray")
-plt.show()
+# plt.show()
 
 # r is the rewards for the different location categories
 #r = np.array([0, -1, -1, -1, 10])
@@ -144,13 +145,13 @@ def plotpolicy(pi,startr=0,startc=0):
 #r = np.array([0, -10, -10, -10, 1])
 
 #kids ward is fine to go through
-#r = np.array([-1, -1, -20, -20, 10])
+# r = np.array([-1, -1, -20, -20, 10])
 
 #get to goal as quick as possible
-r = np.array([-1, 0, 0, 0, 1])
+# r = np.array([-1, 0, 0, 0, 1])
 
-rk = torch.tensor(r,dtype=dtype,requires_grad=False)
-piout, Qout = forward(rk)
+# rk = torch.tensor(r,dtype=dtype,requires_grad=False)
+# piout, Qout = forward(rk)
 #plotpolicy(piout,4,0)
 
 
@@ -162,17 +163,33 @@ from functools import reduce
 # up, right, down, left, stay
  
 #quick as possible
-#trajacts = [1,1,1,1,1,1,1,1,1,4,4,4,4,4,4,4]
+# trajacts = [1,1,1,1,1,1,1,1,1,4,4,4,4,4,4,4]
 
 #scared of everything
-trajacts = [2,2,1,1,1,1,1,1,1,1,1,0,0,4,4,4,4,4,4]
+# trajacts = [2,2,1,1,1,1,1,1,1,1,1,0,0,4,4,4,4,4,4]
 
-#kid zone is fine
-#trajacts = [2,1,1,1,1,1,1,1,1,1,0,4,4,4,4,4,4]
+# #kid zone is fine
+# trajacts = [2,1,1,1,1,1,1,1,1,1,0,4,4,4,4,4,4]
+
+#kid zone is fine / down
+# trajacts = [2,1,1,1,2,1,1,1,1,1,1,0,0,4,4,4,4,4,4]
+
+# goes through yellow
+# trajacts = [2,2,2,1,1,1,1,1,1,1,1,1,0,0,0,4,4,4,4,4,4]
+
+# avoid orange
+trajacts = [1,1,1,1,1,1,2,1,1,1,0,4,4,4,4,4]
+
+# test
+# trajacts = [2,2,2,2,1,1,1,0,3,3,0,1,1,1,1,1,1,1,2,2,1,0,0,0,0,4,4,4,4,4]
+
+# trajacts = [4,4,4,4,4]
+
+
  
 trajcoords = reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0,0]])
 
-#print(trajcoords)
+# print(trajcoords)
 
 
 learning_rate = 0.001
@@ -206,10 +223,20 @@ for iter in range(101):
 		#print("intermediate:",learning_rate * grads_value)
 		rk -= learning_rate * grads_value
 		#print("new rk:",rk)
+		# print(rk)
+		# rk_mean = torch.mean(rk)
+		# rk_std = torch.std(rk)
+		# rk = (rk - rk_mean) / rk_std
+		rk_min = torch.min(rk)
+		rk_max = torch.max(rk)
+		# print(rk)
+		# print(rk.grad)
+		rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
+		# print(rk)
 		rk.grad.zero_()
 
 	#rk -= learning_rate * grads_value
 	if iter % 100 == 0:
 		print(loss, rk)
-		plotpolicy(piout,4,0)
+		plotpolicy(piout,0,6)
 
