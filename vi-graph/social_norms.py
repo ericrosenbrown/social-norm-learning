@@ -226,13 +226,10 @@ for iter in range(101):
 		# print(rk)
 		# rk_mean = torch.mean(rk)
 		# rk_std = torch.std(rk)
-		# rk = (rk - rk_mean) / rk_std
+		# rk.copy_((rk - rk_mean) / rk_std)
 		rk_min = torch.min(rk)
 		rk_max = torch.max(rk)
-		# print(rk)
-		# print(rk.grad)
 		rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
-		# print(rk)
 		rk.grad.zero_()
 
 	#rk -= learning_rate * grads_value
