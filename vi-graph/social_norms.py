@@ -128,9 +128,9 @@ def policyViolations(pi):
           line += [6]
         grid += [line]
       violation_map[i][j] = stateViolations(grid, pi, i, j)
-  print("Violation Map:")
+  print("Policy Violation Map:")
   print(violation_map)
-  print("Average Violation Count: " + str(np.mean(violation_map)))
+  print("Average Policy Violation Count: " + str(np.mean(violation_map)))
 
 # returns number of violations in a state
 def stateViolations(grid,pi,r,c):
