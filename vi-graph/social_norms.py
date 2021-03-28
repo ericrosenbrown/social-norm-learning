@@ -24,6 +24,8 @@ grid_map = np.array([ [0,0,1,1,0,0,0,2,2,4],
 	[0,0,0,0,3,3,3,3,0,0]])
 colors = ["white", "blue", "orange", "yellow", "green"]
 
+
+
 sns.heatmap(grid_map, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False,
 	annot=False, cbar = False, annot_kws={"size": 30}, linewidths=1, linecolor="gray")
 # plt.show()
@@ -115,6 +117,36 @@ def forward(rk):
 
 	return(pi,Q)
 
+def policyViolations(pi):
+  violation_map = np.zeros((nrows,ncols))
+  for i in range(nrows):
+    for j in range(ncols):
+      grid = []
+      for r in range(nrows):
+        line = []
+        for c in range(ncols):
+          line += [6]
+        grid += [line]
+      violation_map[i][j] = stateViolations(grid, pi, i, j)
+  print("Violation Map:")
+  print(violation_map)
+  print("Average Violation Count: " + str(np.mean(violation_map)))
+
+# returns number of violations in a state
+def stateViolations(grid,pi,r,c):
+  if grid[r][c] != 6: return 0
+  maxprob = max(pi[r*ncols+c,:])
+  a = 6
+  for ana in range(5):
+    if pi[r*ncols+c, ana] == maxprob: a = ana
+  grid[r][c] = a
+  r += acts[a][0]
+  c += acts[a][1]
+  tile_type = grid_map[r][c]
+  if tile_type > 0 and tile_type < 4:
+	  return stateViolations(grid,pi,r,c) + 1
+  return stateViolations(grid,pi,r,c)
+
 def findpol(grid,pi,r,c):
   if grid[r][c] != 6: return
   maxprob = max(pi[r*ncols+c,:])
@@ -166,7 +198,7 @@ from functools import reduce
 # trajacts = [1,1,1,1,1,1,1,1,1,4,4,4,4,4,4,4]
 
 #scared of everything
-# trajacts = [2,2,1,1,1,1,1,1,1,1,1,0,0,4,4,4,4,4,4]
+trajacts = [2,2,1,1,1,1,1,1,1,1,1,0,0,4,4,4,4,4,4]
 
 # #kid zone is fine
 # trajacts = [2,1,1,1,1,1,1,1,1,1,0,4,4,4,4,4,4]
@@ -178,9 +210,9 @@ from functools import reduce
 # trajacts = [2,2,2,1,1,1,1,1,1,1,1,1,0,0,0,4,4,4,4,4,4]
 
 # avoid orange
-trajacts = [1,1,1,1,1,1,2,1,1,1,0,4,4,4,4,4]
-trajacts1 = [1,2,1,1,1,0,4,4,4,4,4]
-trajacts2 = [2,1,1,1,0,4,4,4,4,4]
+# trajacts = [1,1,1,1,1,1,2,1,1,1,0,4,4,4,4,4]
+# trajacts1 = [1,2,1,1,1,0,4,4,4,4,4]
+# trajacts2 = [2,1,1,1,0,4,4,4,4,4]
 
 
 # test
@@ -191,20 +223,20 @@ trajacts2 = [2,1,1,1,0,4,4,4,4,4]
 
  
 trajcoords = reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0,0]])
-trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts1, [[0,6]])
-trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts2, [[0,5]])
+# trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts1, [[0,6]])
+# trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts2, [[0,5]])
 
 # print(trajcoords)
 
 
-learning_rate = 0.004
+learning_rate = 0.001
  
 #initial random guess on r
 #r = np.random.rand(5)*2-1
 r = np.array([0, 0, 0, 0, 0])
 rk = torch.tensor(r,dtype=dtype,requires_grad=True)
  
-for iter in range(20000):
+for iter in range(101):
 	piout, Qout = forward(rk)
 	#print("my pi:",piout[0][0])
 
@@ -240,5 +272,6 @@ for iter in range(20000):
 	#rk -= learning_rate * grads_value
 	if iter % 100 == 0:
 		print(loss, rk)
-		plotpolicy(piout,0,0)
+		plotpolicy(piout,4,0)
 
+policyViolations(piout)
