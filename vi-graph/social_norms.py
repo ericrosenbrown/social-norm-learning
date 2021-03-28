@@ -179,6 +179,9 @@ from functools import reduce
 
 # avoid orange
 trajacts = [1,1,1,1,1,1,2,1,1,1,0,4,4,4,4,4]
+trajacts1 = [1,2,1,1,1,0,4,4,4,4,4]
+trajacts2 = [2,1,1,1,0,4,4,4,4,4]
+
 
 # test
 # trajacts = [2,2,2,2,1,1,1,0,3,3,0,1,1,1,1,1,1,1,2,2,1,0,0,0,0,4,4,4,4,4]
@@ -188,18 +191,20 @@ trajacts = [1,1,1,1,1,1,2,1,1,1,0,4,4,4,4,4]
 
  
 trajcoords = reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0,0]])
+trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts1, [[0,6]])
+trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts2, [[0,5]])
 
 # print(trajcoords)
 
 
-learning_rate = 0.001
+learning_rate = 0.004
  
 #initial random guess on r
 #r = np.random.rand(5)*2-1
-r = np.zeros(5)
+r = np.array([0, 0, 0, 0, 0])
 rk = torch.tensor(r,dtype=dtype,requires_grad=True)
  
-for iter in range(101):
+for iter in range(20000):
 	piout, Qout = forward(rk)
 	#print("my pi:",piout[0][0])
 
@@ -235,5 +240,5 @@ for iter in range(101):
 	#rk -= learning_rate * grads_value
 	if iter % 100 == 0:
 		print(loss, rk)
-		plotpolicy(piout,0,6)
+		plotpolicy(piout,0,0)
 
