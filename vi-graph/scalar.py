@@ -198,17 +198,31 @@ def plotpolicy(pi, startr=0, startc=0):
       line += '^>v<x? '[grid[r][c]]
     print(line)
 
+global has_feedback  
+has_feedback = False 
+
+def set_scalar(input):
+	global scalar 
+	scalar = input
+	has_feedback = True
+	print(scalar)
+
 def printGrid(r, c, action):
+	plt.clf() 
 	move_grid = np.empty(shape=(nrows, ncols), dtype='str')
 	move_grid[r][c] = '^>v<x'[action]
 	sns.heatmap(grid_map, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False, cbar=False, annot=move_grid, fmt="", annot_kws={"size": 30}, linewidths=1, linecolor="gray")
-	# axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
-	# axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
-	# bnext = Button(axnext, 'Next')
-	# bnext.on_clicked(lambda x: print("next"))
-	# bprev = Button(axprev, 'Previous')
-	# bprev.on_clicked(lambda x: print("previous"))
-	plt.show()
+	# ax0 = plt.axes([0.6, 0.02, 0.1, 0.075])
+	# ax1 = plt.axes([0.71, 0.02, 0.1, 0.075])
+	# ax2 = plt.axes([0.82, 0.02, 0.1, 0.075])
+	# b0 = Button(ax0, '-1')
+	# b0.on_clicked(lambda x: set_scalar(-1))
+	# b1 = Button(ax1, '0')
+	# b1.on_clicked(lambda x: set_scalar(0))
+	# b2 = Button(ax2, '1')
+	# b2.on_clicked(lambda x: set_scalar(1))
+	plt.draw()
+	plt.show(block = False)
 
 def chooseAction(pi, r, c):
 	epsilon = 0.25
@@ -314,6 +328,10 @@ for iter in range(201):
 		# print("grads value:",grads_value)
 		# print("intermediate:",learning_rate * grads_value)
 		printGrid(row_state, column_state, action)
+		# while(not has_feedback):
+		# 	time.sleep(1)
+		# has_feedback = False
+		# print(scalar)
 		scalar_feedback = float(input("Give the robot scalar feedback on it's action: "))
 		scale = scalar_feedback / pi.item()
 		min_scale = -2.5
