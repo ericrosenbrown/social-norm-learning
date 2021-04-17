@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 import time
+import random
+from matplotlib.widgets import Button
 
 dtype = torch.float32
 
@@ -99,7 +101,7 @@ def forward(rk):
 	v = rffk.detach().clone()
 	# print("v shape:",v.shape)
 	gamma = 0.90
-	beta = 10.0
+	beta = 1
 
 	# inflate v to be able to multiply mattrans
 	# print("mattrans shape:",mattrans.shape)
@@ -200,11 +202,17 @@ def printGrid(r, c, action):
 	move_grid = np.empty(shape=(nrows, ncols), dtype='str')
 	move_grid[r][c] = '^>v<x'[action]
 	sns.heatmap(grid_map, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False, cbar=False, annot=move_grid, fmt="", annot_kws={"size": 30}, linewidths=1, linecolor="gray")
+	# axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
+	# axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
+	# bnext = Button(axnext, 'Next')
+	# bnext.on_clicked(lambda x: print("next"))
+	# bprev = Button(axprev, 'Previous')
+	# bprev.on_clicked(lambda x: print("previous"))
 	plt.show()
 
 def chooseAction(pi, r, c):
+	epsilon = 0.25
 	action_prob = pi[r*ncols+c].cpu().detach().numpy()
-
 	if r == 0:
 		action_prob[0] = 0
 	if c == ncols - 1:
@@ -213,12 +221,28 @@ def chooseAction(pi, r, c):
 		action_prob[2] = 0
 	if c == 0:
 		action_prob[3] = 0
+
 	action_prob = action_prob / np.sum(action_prob)
+	print("Action Probabilities (Up, Right, Down, Left, Stay): ")
+	print(np.round(action_prob, 3))
+
+	r = random.uniform(0, 1)
+	# print("Random Number: " + str(r))
+
+	# if r < epsilon:
+	# 	permitable_actions = np.nonzero(action_prob)[0]
+	# 	choice = np.random.choice(permitable_actions, 1)[0]
+	# 	print("Picking a random action...")
+	# 	print(choice)
+	# 	return choice
+
+
+	print("Picking from probabilities...")
 	cp = [0, np.cumsum(action_prob)]
-	# print(action_prob)
 	choice = np.random.choice(5, 1, p=action_prob)[0]
 	# print(choice)
 	# choice = np.argmax(action_prob)
+	print()
 	return choice
 
 
@@ -239,7 +263,7 @@ def chooseAction(pi, r, c):
 
 
 
-learning_rate = 0.0025
+learning_rate = 0.01
 
 # initial random guess on r
 # r = np.random.rand(5)*2-1
@@ -265,7 +289,6 @@ for iter in range(201):
 
 	piout, Qout = forward(rk)
 	action = chooseAction(piout, row_state, column_state)
-	printGrid(row_state, column_state, action)
 	# scalar_feedback = input("Give the robot feedback on it's action (-1, 0, 1): ")
 	# for i in range(len(trajacts)):
 	# 	acti = trajacts[i]
@@ -273,25 +296,11 @@ for iter in range(201):
 	loss = 0
 	pi = piout[row_state*ncols+column_state][action]
 	# print(pi)
-	scalar_feedback = input("Give the robot feedback on it's action (-1, 0, 1): ")
-	scalar = 1
-	if scalar_feedback == -1:
-		scalar = 100
-	if scalar_feedback == 1:
-		scalar = 0.01
-	loss = -torch.log(pi) * scalar
-	# loss = -torch.log(pi)
+
+	loss = -torch.log(pi)
 	# loss = -torch.log(pi * scalar / pi)
 
 
-	if action == 0:
-		row_state -= 1
-	if action == 1:
-		column_state += 1
-	if action == 2:
-		row_state += 1
-	if action == 3:
-		column_state -= 1
 
 	# print("does rk need grad",rk.requires_grad)
 	loss.backward()
@@ -304,7 +313,19 @@ for iter in range(201):
 		# print("old rk:",rk)
 		# print("grads value:",grads_value)
 		# print("intermediate:",learning_rate * grads_value)
-		rk -= learning_rate * grads_value
+		printGrid(row_state, column_state, action)
+		scalar_feedback = float(input("Give the robot scalar feedback on it's action: "))
+		scale = scalar_feedback / pi.item()
+		min_scale = -2.5
+		max_scale = 2.5
+		if scale > max_scale:
+			scale = max_scale
+		if scale < min_scale:
+			scale = min_scale
+		print("rk Scale: " + str(scale))
+		# rk -= learning_rate * grads_value
+		rk -= (learning_rate * grads_value) * scale
+		# multiply by the scalar number divided by the negative log
 		# print("new rk:",rk)
 		# print(rk)
 		# rk_mean = torch.mean(rk)
@@ -312,13 +333,27 @@ for iter in range(201):
 		# rk.copy_((rk - rk_mean) / rk_std)
 		rk_min = torch.min(rk)
 		rk_max = torch.max(rk)
-		rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
+		# rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
 		rk.grad.zero_()
 
 	# rk -= learning_rate * grads_value
-	
+	# [-0.0377, -0.0876, -0.0304, -0.3253,  1.3532]
+	# [-0.0221, -0.1680, -0.0517, -0.3193,  1.3863]
+
+	# [-0.0629, -0.0807, -0.0205, -0.0030,  0.9147]
+	# [-0.2615, -0.2069, -0.0045,  0.0909,  1.0278]
 	lossList.append(loss.item())
+	print("Loss, Reward (White, Blue, Orange, Yellow, Green): ")
 	print(loss, rk)
+
+	if action == 0:
+		row_state -= 1
+	if action == 1:
+		column_state += 1
+	if action == 2:
+		row_state += 1
+	if action == 3:
+		column_state -= 1
 
 	# plotpolicy(piout,0,0)
 	# pvList.append(policyViolations(piout))
