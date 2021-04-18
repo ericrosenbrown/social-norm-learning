@@ -205,37 +205,37 @@ def plotpolicy(pi, startr=0, startc=0):
 # get to goal as quick as possible
 # r = np.array([-1, 0, 0, 0, 1])
 
-r = np.array([0.5, -1, -1, -1, 1])
-rk = torch.tensor(r,dtype=dtype,requires_grad=False)
-piout, Qout = forward(rk)
-plotpolicy(piout, 0, 0)
-policyViolations(piout)
+# r = np.array([0.5, -1, -1, -1, 1])
+# rk = torch.tensor(r,dtype=dtype,requires_grad=False)
+# piout, Qout = forward(rk)
+# plotpolicy(piout, 0, 0)
+# policyViolations(piout)
 
-# ########### Learning reward function ################
+########### Learning reward function ################
 
 
-# #  0      1     2     3     4
-# # up, right, down, left, stay
+#  0      1     2     3     4
+# up, right, down, left, stay
 
-# # quick as possible
-# # trajacts = [1,1,1,1,1,1,1,1,1,4,4,4,4,4,4,4]
+# quick as possible
+# trajacts = [1,1,1,1,1,1,1,1,1,4,4,4,4,4,4,4]
 
-# # scared of everything
-# # trajacts = [2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 4, 4, 4, 4, 4, 4]
+# scared of everything
+# trajacts = [2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 4, 4, 4, 4, 4, 4]
 
-# # #kid zone is fine
-# # trajacts = [2,1,1,1,1,1,1,1,1,1,0,4,4,4,4,4,4]
+# #kid zone is fine
+# trajacts = [2,1,1,1,1,1,1,1,1,1,0,4,4,4,4,4,4]
 
-# # kid zone is fine / down
-# # trajacts = [2,1,1,1,2,1,1,1,1,1,1,0,0,4,4,4,4,4,4]
+# kid zone is fine / down
+# trajacts = [2,1,1,1,2,1,1,1,1,1,1,0,0,4,4,4,4,4,4]
 
-# # goes through yellow
-# # trajacts = [2,2,2,1,1,1,1,1,1,1,1,1,0,0,0,4,4,4,4,4,4]
+# goes through yellow
+# trajacts = [2,2,2,1,1,1,1,1,1,1,1,1,0,0,0,4,4,4,4,4,4]
 
-# # avoid orange
-# # trajacts = [1,1,1,1,1,1,2,1,1,1,0,4,4,4,4,4]
+# avoid orange
+# trajacts = [1,1,1,1,1,1,2,1,1,1,0,4,4,4,4,4]
 
-# #optimized
+#optimized
 # trajacts = [2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 4, 4, 4, 4, 4, 4]
 # trajacts1 = [2,1,1,1,0,4,4,4,4,4]
 # trajacts2 = [2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 4, 4, 4, 4, 4, 4]
@@ -275,107 +275,112 @@ policyViolations(piout)
 # trajacts += trajacts10
 
 
-# # test
-# # trajacts = [2,2,2,2,1,1,1,0,3,3,0,1,1,1,1,1,1,1,2,2,1,0,0,0,0,4,4,4,4,4]
+# test
+# trajacts = [2,2,2,2,1,1,1,0,3,3,0,1,1,1,1,1,1,1,2,2,1,0,0,0,0,4,4,4,4,4]
 
-# # trajacts = [4,4,4,4,4]
+# trajacts = [4,4,4,4,4]
 
-# ## complicated map trajectories
-# # trajacts = [2, 2, 2, 2, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 2, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4]
-# # trajacts1 = [2, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4]
-
-# ## optimized trajectory
-# # trajacts = [2, 2, 2, 2, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 4, 4, 2, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4]
-# # trajcoords = reduce(
-#     # (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 0]])
-# # trajacts += trajacts1
-# # trajacts += trajacts2
-# # trajacts += trajacts3
+# complicated map trajectories
+# trajacts = [2, 2, 2, 2, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 2, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4]
+# trajacts1 = [2, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4]
 
 
-# ## open hall map trajectories
+## optimized trajectory
+# trajacts = [2, 2, 2, 2, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 4, 4, 2, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4]
+# trajcoords = reduce(
+    # (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 0]])
+# trajacts += trajacts1
+# trajacts += trajacts2
+# trajacts += trajacts3
 
-# # trajacts = [2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4]
-# # trajacts1 = [2, 3, 3, 3, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4]
-# # trajacts2 = [ 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4]
-# # trajcoords = reduce(
-# #     (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 0]])
-# # trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts1, [[1,6]])
-# # trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts2, [[3, 2]])
-# # trajacts += trajacts1
-# # trajacts += trajacts2
-# # trajacts += trajacts3
-
-
-# #  0      1     2     3     4
-# # up, right, down, left, stay
+# trajcoords = reduce(
+#     (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 1]])
+# trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts1, [[0, 6]])
 
 
-# # trajacts += trajacts3
+## open hall map trajectories
 
-# # print(trajacts)
-# # print(trajcoords)
+# trajacts = [2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4]
+# trajacts1 = [2, 3, 3, 3, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4]
+# trajacts2 = [ 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4]
+# trajcoords = reduce(
+#     (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 0]])
+# trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts1, [[1,6]])
+# trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts2, [[3, 2]])
+# trajacts += trajacts1
+# trajacts += trajacts2
+# trajacts += trajacts3
 
 
-# learning_rate = 0.0005
-# iterations = 5000
+#  0      1     2     3     4
+# up, right, down, left, stay
 
-# # initial random guess on r
-# # r = np.random.rand(5)*2-1
-# r = np.array([ 0, 0, 0, 0, 0 ])
-# rk = torch.tensor(r, dtype=dtype, requires_grad=True)
-# lossList = []
-# pvList = []
 
-# for iter in range(iterations):
-# 	piout, Qout = forward(rk)
-# 	# print("my pi:",piout[0][0])
+# trajacts += trajacts3
 
-# 	loss = 0
-# 	for i in range(len(trajacts)):
-# 		acti = trajacts[i]
-# 		state = trajcoords[i]
-# 		loss += -torch.log(piout[state[0]*ncols+state[1]][acti])
+# print(trajacts)
+# print(trajcoords)
+
+
+learning_rate = 0.0005
+iterations = 5000
+
+# initial random guess on r
+# r = np.random.rand(5)*2-1
+r = np.array([ 0, 0, 0, 0, 0 ])
+rk = torch.tensor(r, dtype=dtype, requires_grad=True)
+lossList = []
+pvList = []
+
+for iter in range(iterations):
+	piout, Qout = forward(rk)
+	# print("my pi:",piout[0][0])
+
+	loss = 0
+	for i in range(len(trajacts)):
+		acti = trajacts[i]
+		state = trajcoords[i]
+		loss += -torch.log(piout[state[0]*ncols+state[1]][acti])
 	
-# 	# print("does rk need grad",rk.requires_grad)
-# 	loss.backward()
-# 	# print("The loss is:",loss)
-# 	with torch.no_grad():
-# 		grads_value = rk.grad
-# 		# print("our grads:",grads_value)
+	# print("does rk need grad",rk.requires_grad)
+	loss.backward()
+	# print("The loss is:",loss)
+	with torch.no_grad():
+		grads_value = rk.grad
+		# print("our grads:",grads_value)
 
-# 		# print("grad values are:",grads_value)
-# 		# print("old rk:",rk)
-# 		# print("grads value:",grads_value)
-# 		# print("intermediate:",learning_rate * grads_value)
-# 		rk -= learning_rate * grads_value
-# 		# print("new rk:",rk)
-# 		# print(rk)
-# 		# rk_mean = torch.mean(rk)
-# 		# rk_std = torch.std(rk)
-# 		# rk.copy_((rk - rk_mean) / rk_std)
-# 		rk_min = torch.min(rk)
-# 		rk_max = torch.max(rk)
-# 		# rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
-# 		rk.grad.zero_()
+		# print("grad values are:",grads_value)
+		# print("old rk:",rk)
+		# print("grads value:",grads_value)
+		# print("intermediate:",learning_rate * grads_value)
+		rk -= learning_rate * grads_value
+		# print("new rk:",rk)
+		# print(rk)
+		# rk_mean = torch.mean(rk)
+		# rk_std = torch.std(rk)
+		# rk.copy_((rk - rk_mean) / rk_std)
+		rk_min = torch.min(rk)
+		rk_max = torch.max(rk)
+		# rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
+		rk.grad.zero_()
 
-# 	# rk -= learning_rate * grads_value
+	# rk -= learning_rate * grads_value
 	
-# 	if iter % 10 == 0:
-# 		lossList.append(loss.item())
-# 		print(loss, rk)
-# 		# print(piout)
-# 		# print(Qout)
-# 		plotpolicy(piout,0,0)
-# 		pvList.append(policyViolations(piout))
+	if iter % 10 == 0:
+		lossList.append(loss.item())
+		print(loss, rk)
+		# print(piout)
+		# print(Qout)
+		plotpolicy(piout,0,0)
+		pvList.append(policyViolations(piout))
 
-# plt.plot(lossList)
-# plt.xlabel('Iteration')
-# plt.ylabel('Loss')
-# plt.suptitle('Action-Feedback Loss Graph')
-# plt.show()
-# plt.plot(pvList)
-# plt.xlabel('Iteration')
-# plt.ylabel('Policy Violation Average')
-# plt.suptitle('Action-Feedback Average Violation Graph')
-# plt.show()
+plt.plot(lossList)
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.suptitle('Action-Feedback Loss Graph')
+plt.show()
+plt.plot(pvList)
+plt.xlabel('Iteration')
+plt.ylabel('Policy Violation Average')
+plt.suptitle('Action-Feedback Average Violation Graph')
+plt.show()

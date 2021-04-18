@@ -21,24 +21,24 @@ ncats = 5
 # map state categories to states
 # want m s.t. r %*% m = reward function
 # first, just a map of the indexes
-grid_map = np.array([
-	[0, 0, 1, 1, 0, 0, 0, 2, 2, 4],
-	[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0],
-	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0]])
+# grid_map = np.array([
+# 	[0, 0, 1, 1, 0, 0, 0, 2, 2, 4],
+# 	[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+# 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+# 	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0],
+# 	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0]])
 # grid_map = np.array([
 # 	[0, 1, 1, 1, 0, 0, 0, 2, 2, 4],
 # 	[0, 1, 1, 1, 0, 3, 0, 0, 2, 0],
 # 	[0, 1, 1, 0, 0, 3, 3, 0, 2, 0],
 # 	[0, 1, 1, 0, 3, 3, 3, 0, 2, 0],
 # 	[0, 0, 0, 0, 3, 3, 3, 0, 0, 0]])
-# grid_map = np.array([
-# 	[0, 1, 1, 1, 3, 3, 3, 2, 2, 4],
-# 	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
-# 	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
-# 	[0, 1, 1, 1, 3, 3, 3, 2, 2, 0],
-# 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+grid_map = np.array([
+	[0, 1, 1, 1, 3, 3, 3, 2, 2, 4],
+	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
+	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
+	[0, 1, 1, 1, 3, 3, 3, 2, 2, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 colors = ["white", "blue", "orange", "yellow", "green"]
 
 
@@ -149,9 +149,9 @@ def policyViolations(pi):
           line += [6]
         grid += [line]
       violation_map[i][j] = stateViolations(grid, pi, i, j)
-  # print("Policy Violation Map:")
-  # print(violation_map)
-  # print("Average Policy Violation Count: " + str(np.mean(violation_map)))
+  print("Policy Violation Map:")
+  print(violation_map)
+  print("Average Policy Violation Count: " + str(np.mean(violation_map)))
   return np.mean(violation_map)
 
 # returns number of violations in a state
@@ -302,7 +302,7 @@ def chooseAction(pi, r, c):
 
 	action_prob = action_prob / np.sum(action_prob)
 	print("Action Probabilities (Up, Right, Down, Left, Stay): ")
-	print(np.round(action_prob, 3))
+	print(action_prob)
 
 	r = random.uniform(0, 1)
 	# print("Random Number: " + str(r))
@@ -315,7 +315,7 @@ def chooseAction(pi, r, c):
 	# 	return choice
 
 
-	print("Picking from probabilities...")
+	# print("Picking from probabilities...")
 	# choice = np.random.choice(5, 1, p=action_prob)[0]
 	# print(choice)
 	choice = np.argmax(action_prob)
@@ -343,7 +343,8 @@ learning_rate = 0.02
 
 # initial random guess on r
 # r = np.random.rand(5)*2-1
-r = np.array([ 0, 0, 0, 0, 1 ])
+r = np.array([0, 0, 0, 0, 1])
+# r = np.array([0, -10, -10, -10, 10])
 rk = torch.tensor(r, dtype=dtype, requires_grad=True)
 lossList = []
 pvList = []
@@ -353,14 +354,36 @@ column_start = 0
 row_dest = 0
 column_dest = 9
 
+p = 0
+#basic map
+# p_rows = [0,4,0,4,4,0]
+# p_cols = [6,3,1,9,0,0]
+#complicated map
+# p_rows = [0]
+# p_cols = [0]
+# #open hall map
+p_rows = [0,0,0,2,2]
+p_cols = [6,7,0,3,6]
+
 row_state = row_start
 column_state = column_start
-for iter in range(101):
+reset_count = 0
+resets = 20
+while(reset_count < resets):
   if row_state == row_dest and column_state == column_dest: 
-    row_state = row_start
-    column_state = column_start
+    if p > (len(p_rows) - 1):
+      p = 0
+    row_state = p_rows[p]
+    column_state = p_cols[p]
+    if reset_count == resets:
+      print("Finished Iterations!")
+      break
     print("Robot Reached Goal... Resetting Position to (" + str(row_state) + ", " + str(column_state) + ")")
+    print("Loss, Reward (White, Blue, Orange, Yellow, Green): ")
+    print(loss, rk)
+    p += 1
     time.sleep(2.5)
+    reset_count += 1
 
   piout, Qout = forward(rk)
   action = chooseAction(piout, row_state, column_state)
@@ -407,11 +430,12 @@ for iter in range(101):
     # print(scalar)
     scalar_feedback = 0
     try: 
-      scalar_feedback = float(input("Give the robot scalar feedback on it's action: "))
+      input_text = input("Give the robot scalar feedback on it's action: ")
+      scalar_feedback = float(input_text)
     except ValueError:
       print("Non-Numerical Value Given. Feedback will be 0 for this action")
       time.sleep(1.5)
-    scale = clip(scalar_feedback / pi_action_state.item(), -5, 6)
+    scale = clip(scalar_feedback / pi_action_state.item(), -1.5, 6)
     # scale = scalar_feedback / pi_action_state.item()
     print("rk Scale: " + str(scale))
     # rk -= learning_rate * grads_value
