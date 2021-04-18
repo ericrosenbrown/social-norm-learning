@@ -101,7 +101,7 @@ def forward(rk):
 	v = rffk.detach().clone()
 	# print("v shape:",v.shape)
 	gamma = 0.90
-	beta = 1
+	beta = 1.25
 
 	# inflate v to be able to multiply mattrans
 	# print("mattrans shape:",mattrans.shape)
@@ -149,9 +149,9 @@ def policyViolations(pi):
           line += [6]
         grid += [line]
       violation_map[i][j] = stateViolations(grid, pi, i, j)
-  print("Policy Violation Map:")
-  print(violation_map)
-  print("Average Policy Violation Count: " + str(np.mean(violation_map)))
+  # print("Policy Violation Map:")
+  # print(violation_map)
+  # print("Average Policy Violation Count: " + str(np.mean(violation_map)))
   return np.mean(violation_map)
 
 # returns number of violations in a state
@@ -183,6 +183,7 @@ def findpol(grid, pi, r, c):
   c += acts[a][1]
   findpol(grid, pi, r, c)
 
+	
 
 def plotpolicy(pi, startr=0, startc=0):
   grid = []
@@ -198,31 +199,94 @@ def plotpolicy(pi, startr=0, startc=0):
       line += '^>v<x? '[grid[r][c]]
     print(line)
 
-global has_feedback  
-has_feedback = False 
+# def findPaths(pi, startr=0, startc=0):
+#   grid = []
+#   for r in range(nrows):
+#     line = []
+#     for c in range(ncols):
+#       line += [6]
+#     grid += [line]
+#   findpol(grid, pi, startr, startc)
+#   for r in range(nrows):
+#     for c in range(ncols):
+#       grid[r][c] = '^>v<x? '[grid[r][c]]
+#   return grid	
 
-def set_scalar(input):
-	global scalar 
-	scalar = input
-	has_feedback = True
-	print(scalar)
+def findPaths(pi, startr=0, startc=0):
+  grid1 = []
+  grid2 = []
+  grid3 = []
+  grid4 = []
+  for r in range(nrows):
+    line1 = []
+    line2 = []
+    line3 = []
+    line4 = []
+    for c in range(ncols):
+      line1 += [6]
+      line2 += [6]
+      line3 += [6]
+      line4 += [6]
+    grid1 += [line1]
+    grid2 += [line2]
+    grid3 += [line3]
+    grid4 += [line4]
+  if startr != 0:
+    findpol(grid1, pi, startr-1, startc)
+  if startc != 0:
+    findpol(grid2, pi, startr, startc-1)
+  if startr != nrows-1:
+    findpol(grid3, pi, startr+1, startc)
+  if startc != ncols-1:
+    findpol(grid4, pi, startr, startc+1)
+  for r in range(nrows):
+    for c in range(ncols):
+      grid1[r][c] = '^>v<x? '[grid1[r][c]]
+      if grid2[r][c] != 6:
+        grid1[r][c] = '^>v<x? '[grid2[r][c]]
+      if grid3[r][c] != 6:
+        grid1[r][c] = '^>v<x? '[grid3[r][c]]
+      if grid4[r][c] != 6:
+        grid1[r][c] = '^>v<x? '[grid4[r][c]]
+  return grid1
 
-def printGrid(r, c, action):
-	plt.clf() 
-	move_grid = np.empty(shape=(nrows, ncols), dtype='str')
-	move_grid[r][c] = '^>v<x'[action]
-	sns.heatmap(grid_map, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False, cbar=False, annot=move_grid, fmt="", annot_kws={"size": 30}, linewidths=1, linecolor="gray")
-	# ax0 = plt.axes([0.6, 0.02, 0.1, 0.075])
-	# ax1 = plt.axes([0.71, 0.02, 0.1, 0.075])
-	# ax2 = plt.axes([0.82, 0.02, 0.1, 0.075])
-	# b0 = Button(ax0, '-1')
-	# b0.on_clicked(lambda x: set_scalar(-1))
-	# b1 = Button(ax1, '0')
-	# b1.on_clicked(lambda x: set_scalar(0))
-	# b2 = Button(ax2, '1')
-	# b2.on_clicked(lambda x: set_scalar(1))
-	plt.draw()
-	plt.show(block = False)
+
+# global has_feedback  
+# has_feedback = False 
+
+# def set_scalar(input):
+# 	global scalar 
+# 	scalar = input
+# 	has_feedback = True
+# 	print(scalar)
+
+def printGrid(r, c, nr, nc, action, piout):
+  plt.close() 
+  move_grid = np.empty(shape=(nrows, ncols), dtype='str')
+  move_grid[r][c] = '^>v<x'[action]
+  # move_grid[nr][nr] = "o"
+
+  next_moves_grid = findPaths(piout, nr, nc)
+  next_moves_grid[nr][nc] = "+"
+
+  fig, (ax1, ax2) = plt.subplots(2, figsize=[6, 6])
+
+  sns.heatmap(grid_map, ax=ax1, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False, cbar=False, annot=move_grid, fmt="", annot_kws={"size": 30}, linewidths=1, linecolor="gray")
+  sns.heatmap(grid_map, ax=ax2, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False, cbar=False, annot=next_moves_grid, fmt="", annot_kws={"size": 30}, linewidths=1, linecolor="gray")
+  # ax0 = plt.axes([0.6, 0.02, 0.1, 0.075])
+  # ax1 = plt.axes([0.71, 0.02, 0.1, 0.075])
+  # ax2 = plt.axes([0.82, 0.02, 0.1, 0.075])
+  # b0 = Button(ax0, '-1')
+  # b0.on_clicked(lambda x: set_scalar(-1))
+  # b1 = Button(ax1, '0')
+  # b1.on_clicked(lambda x: set_scalar(0))
+  # b2 = Button(ax2, '1')
+  # b2.on_clicked(lambda x: set_scalar(1))
+  ax1.set_title('Robot Action')
+  ax2.set_title('Robot Most Likely Pathways')
+  plt.draw()
+  plt.show(block = False)
+	
 
 def chooseAction(pi, r, c):
 	epsilon = 0.25
@@ -252,11 +316,9 @@ def chooseAction(pi, r, c):
 
 
 	print("Picking from probabilities...")
-	cp = [0, np.cumsum(action_prob)]
 	choice = np.random.choice(5, 1, p=action_prob)[0]
 	# print(choice)
 	# choice = np.argmax(action_prob)
-	print()
 	return choice
 
 
@@ -277,7 +339,7 @@ def chooseAction(pi, r, c):
 
 
 
-learning_rate = 0.01
+learning_rate = 0.02
 
 # initial random guess on r
 # r = np.random.rand(5)*2-1
@@ -293,96 +355,104 @@ column_dest = 9
 
 row_state = row_start
 column_state = column_start
+for iter in range(101):
+  if row_state == row_dest and column_state == column_dest: 
+    row_state = row_start
+    column_state = column_start
+    print("Robot Reached Goal... Resetting Position to (" + str(row_state) + ", " + str(column_state) + ")")
+    time.sleep(2.5)
 
-for iter in range(201):
-	if row_state == row_dest and column_state == column_dest: 
-		row_state = row_start
-		column_state = column_start
-		print("Robot Reached Goal... Resetting Position to (" + str(row_state) + ", " + str(column_state) + ")")
-		time.sleep(2.5)
+  piout, Qout = forward(rk)
+  action = chooseAction(piout, row_state, column_state)
+  # scalar_feedback = input("Give the robot feedback on it's action (-1, 0, 1): ")
+  # for i in range(len(trajacts)):
+  # 	acti = trajacts[i]
+  # 	state = trajcoords[i]
+  loss = 0
+  pi_action_state = piout[row_state*ncols+column_state][action]
+  # print(pi)
 
-	piout, Qout = forward(rk)
-	action = chooseAction(piout, row_state, column_state)
-	# scalar_feedback = input("Give the robot feedback on it's action (-1, 0, 1): ")
-	# for i in range(len(trajacts)):
-	# 	acti = trajacts[i]
-	# 	state = trajcoords[i]
-	loss = 0
-	pi = piout[row_state*ncols+column_state][action]
-	# print(pi)
-
-	loss = -torch.log(pi)
-	# loss = -torch.log(pi * scalar / pi)
-
+  loss = -torch.log(pi_action_state)
+  # loss = -torch.log(pi * scalar / pi_action_state)
 
 
-	# print("does rk need grad",rk.requires_grad)
-	loss.backward()
-	# print("The loss is:",loss)
-	with torch.no_grad():
-		grads_value = rk.grad
-		# print("our grads:",grads_value)
 
-		# print("grad values are:",grads_value)
-		# print("old rk:",rk)
-		# print("grads value:",grads_value)
-		# print("intermediate:",learning_rate * grads_value)
-		printGrid(row_state, column_state, action)
-		# while(not has_feedback):
-		# 	time.sleep(1)
-		# has_feedback = False
-		# print(scalar)
-		scalar_feedback = float(input("Give the robot scalar feedback on it's action: "))
-		scale = scalar_feedback / pi.item()
-		min_scale = -2.5
-		max_scale = 2.5
-		if scale > max_scale:
-			scale = max_scale
-		if scale < min_scale:
-			scale = min_scale
-		print("rk Scale: " + str(scale))
-		# rk -= learning_rate * grads_value
-		rk -= (learning_rate * grads_value) * scale
-		# multiply by the scalar number divided by the negative log
-		# print("new rk:",rk)
-		# print(rk)
-		# rk_mean = torch.mean(rk)
-		# rk_std = torch.std(rk)
-		# rk.copy_((rk - rk_mean) / rk_std)
-		rk_min = torch.min(rk)
-		rk_max = torch.max(rk)
-		# rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
-		rk.grad.zero_()
+  # print("does rk need grad",rk.requires_grad)
+  loss.backward()
+  # print("The loss is:",loss)
+  with torch.no_grad():
+    grads_value = rk.grad
+    # print("our grads:",grads_value)
 
-	# rk -= learning_rate * grads_value
-	# [-0.0377, -0.0876, -0.0304, -0.3253,  1.3532]
-	# [-0.0221, -0.1680, -0.0517, -0.3193,  1.3863]
+    # print("grad values are:",grads_value)
+    # print("old rk:",rk)
+    # print("grads value:",grads_value)
+    # print("intermediate:",learning_rate * grads_value)
+    nr = row_state
+    nc = column_state
+    if action == 0:
+      nr -= 1
+    if action == 1:
+      nc += 1
+    if action == 2:
+      nr += 1
+    if action == 3:
+      nc -= 1
 
-	# [-0.0629, -0.0807, -0.0205, -0.0030,  0.9147]
-	# [-0.2615, -0.2069, -0.0045,  0.0909,  1.0278]
-	lossList.append(loss.item())
-	print("Loss, Reward (White, Blue, Orange, Yellow, Green): ")
-	print(loss, rk)
+    printGrid(row_state, column_state, nr, nc, action, piout)
 
-	if action == 0:
-		row_state -= 1
-	if action == 1:
-		column_state += 1
-	if action == 2:
-		row_state += 1
-	if action == 3:
-		column_state -= 1
+    # while(not has_feedback):
+    # 	time.sleep(1)
+    # has_feedback = False
+    # print(scalar)
+    scalar_feedback = 0
+    try: 
+      scalar_feedback = float(input("Give the robot scalar feedback on it's action: "))
+    except ValueError:
+      print("Non-Numerical Value Given. Feedback will be 0 for this action")
+      time.sleep(1.5)
+    scale = clip(scalar_feedback / pi_action_state.item(), -2.5, 3.5)
+    print("rk Scale: " + str(scale))
+    # rk -= learning_rate * grads_value
+    rk -= (learning_rate * grads_value) * scale
+    # multiply by the scalar number divided by the negative log
+    # print("new rk:",rk)
+    # print(rk)
+    # rk_mean = torch.mean(rk)
+    # rk_std = torch.std(rk)
+    # rk.copy_((rk - rk_mean) / rk_std)
+    rk_min = torch.min(rk)
+    rk_max = torch.max(rk)
+    # rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
+    rk.grad.zero_()
 
-	# plotpolicy(piout,0,0)
-	# pvList.append(policyViolations(piout))
+  # rk -= learning_rate * grads_value
+  # [-0.0377, -0.0876, -0.0304, -0.3253,  1.3532]
+  # [-0.0221, -0.1680, -0.0517, -0.3193,  1.3863]
 
-# plt.plot(lossList)
-# plt.xlabel('Iteration')
-# plt.ylabel('Loss')
-# plt.suptitle('Action-Feedback Loss Graph')
-# plt.show()
-# plt.plot(pvList)
-# plt.xlabel('Iteration')
-# plt.ylabel('Policy Violation Average')
-# plt.suptitle('Action-Feedback Average Violation Graph')
-# plt.show()
+  # [-0.0629, -0.0807, -0.0205, -0.0030,  0.9147]
+  # [-0.2615, -0.2069, -0.0045,  0.0909,  1.0278]
+  lossList.append(loss.item())
+  print("Loss, Reward (White, Blue, Orange, Yellow, Green): ")
+  print(loss, rk)
+  row_state = nr
+  column_state = nc
+
+
+
+  # plotpolicy(piout,0,0)
+  pvList.append(policyViolations(piout))
+  lossList.append(loss.item())
+
+
+plt.plot(lossList)
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.suptitle('Action-Feedback Loss Graph')
+plt.show()
+plt.plot(pvList)
+plt.xlabel('Iteration')
+plt.ylabel('Policy Violation Average')
+plt.suptitle('Action-Feedback Average Violation Graph')
+plt.show()
+
