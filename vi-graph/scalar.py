@@ -266,8 +266,8 @@ def printGrid(r, c, nr, nc, action, piout):
   move_grid[r][c] = '^>v<x'[action]
   # move_grid[nr][nr] = "o"
 
-  next_moves_grid = findPaths(piout, nr, nc)
-  next_moves_grid[nr][nc] = "+"
+  next_moves_grid = findPaths(piout, r, c)
+  next_moves_grid[r][c] = "+"
 
   fig, (ax1, ax2) = plt.subplots(2, figsize=[6, 6])
 
@@ -316,9 +316,9 @@ def chooseAction(pi, r, c):
 
 
 	print("Picking from probabilities...")
-	choice = np.random.choice(5, 1, p=action_prob)[0]
+	# choice = np.random.choice(5, 1, p=action_prob)[0]
 	# print(choice)
-	# choice = np.argmax(action_prob)
+	choice = np.argmax(action_prob)
 	return choice
 
 
@@ -411,7 +411,8 @@ for iter in range(101):
     except ValueError:
       print("Non-Numerical Value Given. Feedback will be 0 for this action")
       time.sleep(1.5)
-    scale = clip(scalar_feedback / pi_action_state.item(), -2.5, 3.5)
+    scale = clip(scalar_feedback / pi_action_state.item(), -5, 6)
+    # scale = scalar_feedback / pi_action_state.item()
     print("rk Scale: " + str(scale))
     # rk -= learning_rate * grads_value
     rk -= (learning_rate * grads_value) * scale
