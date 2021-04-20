@@ -18,18 +18,18 @@ ncats = 5
 # map state categories to states
 # want m s.t. r %*% m = reward function
 # first, just a map of the indexes
-grid_map = np.array([
-	[0, 0, 1, 1, 0, 0, 0, 2, 2, 4],
-	[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0],
-	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0]])
 # grid_map = np.array([
-# 	[0, 1, 1, 1, 0, 0, 0, 2, 2, 4],
-# 	[0, 1, 1, 1, 0, 3, 0, 0, 2, 0],
-# 	[0, 1, 1, 0, 0, 3, 3, 0, 2, 0],
-# 	[0, 1, 1, 0, 3, 3, 3, 0, 2, 0],
-# 	[0, 0, 0, 0, 3, 3, 3, 0, 0, 0]])
+# 	[0, 0, 1, 1, 0, 0, 0, 2, 2, 4],
+# 	[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+# 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+# 	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0],
+# 	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0]])
+grid_map = np.array([
+	[0, 1, 1, 1, 0, 0, 0, 2, 2, 4],
+	[0, 1, 1, 1, 0, 3, 0, 0, 2, 0],
+	[0, 1, 1, 0, 0, 3, 3, 0, 2, 0],
+	[0, 1, 1, 0, 3, 3, 3, 0, 2, 0],
+	[0, 0, 0, 0, 3, 3, 3, 0, 0, 0]])
 # grid_map = np.array([
 # 	[0, 1, 1, 1, 3, 3, 3, 2, 2, 4],
 # 	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
@@ -135,8 +135,9 @@ def forward(rk):
 	return(pi, Q)
 
 
-def policyViolations(pi):
+def policyViolations(pi, do_print=True):
   violation_map = np.zeros((nrows, ncols))
+  iteration_map = np.zeros((nrows, ncols))
   for i in range(nrows):
     for j in range(ncols):
       grid = []
@@ -145,17 +146,25 @@ def policyViolations(pi):
         for c in range(ncols):
           line += [6]
         grid += [line]
-      violation_map[i][j] = stateViolations(grid, pi, i, j)
-  print("Policy Violation Map:")
-  print(violation_map)
-  print("Average Policy Violation Count: " + str(np.mean(violation_map)))
-  return np.mean(violation_map)
+      iter, viol = stateViolations(grid, pi, i, j)
+      violation_map[i][j] = viol
+      iteration_map[i][j] = iter
+  if do_print:
+    print("Policy Violation Map:")
+    print(violation_map)
+    print("Iteration Map:")
+    print(iteration_map)
+    print("Average Policy Violation Count: " + str(np.mean(violation_map)))
+    print("Standard Deviation Violation Count: " + str(round(np.std(violation_map), 3)))
+    print("Average Iteration Count: " + str(np.mean(iteration_map)))
+    print("Standard Deviation Iteration Count: " + str(round(np.std(iteration_map), 3)))
+  return (np.mean(iteration_map), np.mean(violation_map))
 
 # returns number of violations in a state
 
 
 def stateViolations(grid, pi, r, c):
-  if grid[r][c] != 6: return 0
+  if grid[r][c] != 6: return (0, 0)
   maxprob = max(pi[r*ncols+c, :])
   a = 6
   for ana in range(5):
@@ -163,10 +172,13 @@ def stateViolations(grid, pi, r, c):
   grid[r][c] = a
   r += acts[a][0]
   c += acts[a][1]
+  iter, viol = stateViolations(grid, pi, r, c)
+  if grid[r][c] < 4:
+      iter += 1
   tile_type = grid_map[r][c]
   if tile_type == 1 or tile_type == 2 or tile_type == 3:
-	  return stateViolations(grid, pi, r, c) + 1
-  return stateViolations(grid, pi, r, c)
+	  viol += 1
+  return (iter, viol)
 
 
 def findpol(grid, pi, r, c):
@@ -181,19 +193,32 @@ def findpol(grid, pi, r, c):
   findpol(grid, pi, r, c)
 
 
-def plotpolicy(pi, startr=0, startc=0):
+def plotpolicy(pi, startr=0, startc=0, do_print=True):
   grid = []
+  count = 0
   for r in range(nrows):
     line = []
     for c in range(ncols):
       line += [6]
     grid += [line]
   findpol(grid, pi, startr, startc)
-  for r in range(nrows):
-    line = ""
-    for c in range(ncols):
-      line += '^>v<x? '[grid[r][c]]
-    print(line)
+  # if grid[0][ncols-1] != 4:
+  #   count = -1
+  # else:
+  #   for r in range(nrows):
+  #     for c in range(ncols):
+  #       if grid[r][c] < 4:
+  #         count += 1
+
+  if do_print:
+    for r in range(nrows):
+      line = ""
+      for c in range(ncols):
+        line += '^>v<x? '[grid[r][c]]
+      print(line)
+    # print("Iteration Count: " + str(count))
+  return count
+    
 
 
 # all obstacles are lava
@@ -205,11 +230,11 @@ def plotpolicy(pi, startr=0, startc=0):
 # get to goal as quick as possible
 # r = np.array([-1, 0, 0, 0, 1])
 
-# r = np.array([0.5, -1, -1, -1, 1])
-# rk = torch.tensor(r,dtype=dtype,requires_grad=False)
-# piout, Qout = forward(rk)
-# plotpolicy(piout, 0, 0)
-# policyViolations(piout)
+r = np.array([0.5, -1, -1, -1, 1])
+rk = torch.tensor(r,dtype=dtype,requires_grad=False)
+piout, Qout = forward(rk)
+plotpolicy(piout, 0, 0)
+policyViolations(piout)
 
 ########### Learning reward function ################
 
@@ -236,8 +261,8 @@ def plotpolicy(pi, startr=0, startc=0):
 # trajacts = [1,1,1,1,1,1,2,1,1,1,0,4,4,4,4,4]
 
 #optimized
-# trajacts = [2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 4, 4, 4, 4, 4, 4]
-# trajacts1 = [2,1,1,1,0,4,4,4,4,4]
+# trajacts = [2,1,1,1,0,4,4,4,4,4]
+# trajacts1 = [2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 4, 4, 4, 4, 4, 4]
 # trajacts2 = [2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 4, 4, 4, 4, 4, 4]
 # trajacts3 = [2,1,1,0,4,4,4,4,4]
 # trajacts4 = [2,1,1,1,0,4,4,4,4,4]
@@ -249,8 +274,8 @@ def plotpolicy(pi, startr=0, startc=0):
 # trajacts10 = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 4, 4, 4, 4, 4]
 
 # trajcoords = reduce(
-#     (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 1]])
-# trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts1, [[0, 6]])
+#     (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 6]])
+# trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts1, [[0, 1]])
 # trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts2, [[0, 0]])
 # trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts3, [[0, 7]])
 # trajcoords += reduce((lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts4, [[0, 6]])
@@ -286,9 +311,9 @@ def plotpolicy(pi, startr=0, startc=0):
 
 
 ## optimized trajectory
-# trajacts = [2, 2, 2, 2, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 4, 4, 2, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4]
-# trajcoords = reduce(
-    # (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 0]])
+trajacts = [2, 2, 2, 2, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 4, 4, 2, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 4, 4, 4, 4, 4]
+trajcoords = reduce(
+    (lambda seq, a: seq+[[seq[len(seq)-1][0] + acts[a][0], seq[len(seq)-1][1] + acts[a][1]]]), trajacts, [[0, 0]])
 # trajacts += trajacts1
 # trajacts += trajacts2
 # trajacts += trajacts3
@@ -322,8 +347,8 @@ def plotpolicy(pi, startr=0, startc=0):
 # print(trajcoords)
 
 
-learning_rate = 0.0005
-iterations = 5000
+learning_rate = 0.001
+iterations = 200
 
 # initial random guess on r
 # r = np.random.rand(5)*2-1
@@ -331,56 +356,71 @@ r = np.array([ 0, 0, 0, 0, 0 ])
 rk = torch.tensor(r, dtype=dtype, requires_grad=True)
 lossList = []
 pvList = []
+iterList = []
 
 for iter in range(iterations):
-	piout, Qout = forward(rk)
-	# print("my pi:",piout[0][0])
+  piout, Qout = forward(rk)
+  # print("my pi:",piout[0][0])
 
-	loss = 0
-	for i in range(len(trajacts)):
-		acti = trajacts[i]
-		state = trajcoords[i]
-		loss += -torch.log(piout[state[0]*ncols+state[1]][acti])
-	
-	# print("does rk need grad",rk.requires_grad)
-	loss.backward()
-	# print("The loss is:",loss)
-	with torch.no_grad():
-		grads_value = rk.grad
-		# print("our grads:",grads_value)
+  loss = 0
+  for i in range(len(trajacts)):
+    acti = trajacts[i]
+    state = trajcoords[i]
+    loss += -torch.log(piout[state[0]*ncols+state[1]][acti])
 
-		# print("grad values are:",grads_value)
-		# print("old rk:",rk)
-		# print("grads value:",grads_value)
-		# print("intermediate:",learning_rate * grads_value)
-		rk -= learning_rate * grads_value
-		# print("new rk:",rk)
-		# print(rk)
-		# rk_mean = torch.mean(rk)
-		# rk_std = torch.std(rk)
-		# rk.copy_((rk - rk_mean) / rk_std)
-		rk_min = torch.min(rk)
-		rk_max = torch.max(rk)
-		# rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
-		rk.grad.zero_()
+  # print("does rk need grad",rk.requires_grad)
+  loss.backward()
+  # print("The loss is:",loss)
+  with torch.no_grad():
+    grads_value = rk.grad
+    # print("our grads:",grads_value)
 
-	# rk -= learning_rate * grads_value
-	
-	if iter % 10 == 0:
-		lossList.append(loss.item())
-		print(loss, rk)
-		# print(piout)
-		# print(Qout)
-		plotpolicy(piout,0,0)
-		pvList.append(policyViolations(piout))
+    # print("grad values are:",grads_value)
+    # print("old rk:",rk)
+    # print("grads value:",grads_value)
+    # print("intermediate:",learning_rate * grads_value)
+    rk -= learning_rate * grads_value
+    # print("new rk:",rk)
+    # print(rk)
+    # rk_mean = torch.mean(rk)
+    # rk_std = torch.std(rk)
+    # rk.copy_((rk - rk_mean) / rk_std)
+    rk_min = torch.min(rk)
+    rk_max = torch.max(rk)
+    # rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
+    rk.grad.zero_()
+
+  # rk -= learning_rate * grads_value
+
+
+  if iter % 10 == 0:
+    print(loss, rk)
+    lossList.append(loss.item())
+    iter, viol = policyViolations(piout)
+    pvList.append(viol)
+    # print(piout)
+    # print(Qout)
+    iterList.append(iter)
+  else:
+    lossList.append(loss.item())
+    iter, viol = policyViolations(piout, do_print=False)
+    pvList.append(viol)
+    iterList.append(iter)
 
 plt.plot(lossList)
 plt.xlabel('Iteration')
 plt.ylabel('Loss')
 plt.suptitle('Action-Feedback Loss Graph')
 plt.show()
+
 plt.plot(pvList)
 plt.xlabel('Iteration')
 plt.ylabel('Policy Violation Average')
 plt.suptitle('Action-Feedback Average Violation Graph')
+plt.show()
+
+plt.plot(iterList)
+plt.xlabel('Iteration')
+plt.ylabel('Steps to Goal')
+plt.suptitle('Action-Feedback Average Steps Graph')
 plt.show()

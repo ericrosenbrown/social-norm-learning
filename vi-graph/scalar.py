@@ -27,18 +27,18 @@ ncats = 5
 # 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 # 	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0],
 # 	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0]])
-# grid_map = np.array([
-# 	[0, 1, 1, 1, 0, 0, 0, 2, 2, 4],
-# 	[0, 1, 1, 1, 0, 3, 0, 0, 2, 0],
-# 	[0, 1, 1, 0, 0, 3, 3, 0, 2, 0],
-# 	[0, 1, 1, 0, 3, 3, 3, 0, 2, 0],
-# 	[0, 0, 0, 0, 3, 3, 3, 0, 0, 0]])
 grid_map = np.array([
-	[0, 1, 1, 1, 3, 3, 3, 2, 2, 4],
-	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
-	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
-	[0, 1, 1, 1, 3, 3, 3, 2, 2, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+	[0, 1, 1, 1, 0, 0, 0, 2, 2, 4],
+	[0, 1, 1, 1, 0, 3, 0, 0, 2, 0],
+	[0, 1, 1, 0, 0, 3, 3, 0, 2, 0],
+	[0, 1, 1, 0, 3, 3, 3, 0, 2, 0],
+	[0, 0, 0, 0, 3, 3, 3, 0, 0, 0]])
+# grid_map = np.array([
+# 	[0, 1, 1, 1, 3, 3, 3, 2, 2, 4],
+# 	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
+# 	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
+# 	[0, 1, 1, 1, 3, 3, 3, 2, 2, 0],
+# 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 colors = ["white", "blue", "orange", "yellow", "green"]
 
 
@@ -138,8 +138,9 @@ def forward(rk):
 	return(pi, Q)
 
 
-def policyViolations(pi):
+def policyViolations(pi, do_print=True):
   violation_map = np.zeros((nrows, ncols))
+  iteration_map = np.zeros((nrows, ncols))
   for i in range(nrows):
     for j in range(ncols):
       grid = []
@@ -148,17 +149,25 @@ def policyViolations(pi):
         for c in range(ncols):
           line += [6]
         grid += [line]
-      violation_map[i][j] = stateViolations(grid, pi, i, j)
-  print("Policy Violation Map:")
-  print(violation_map)
-  print("Average Policy Violation Count: " + str(np.mean(violation_map)))
-  return np.mean(violation_map)
+      iter, viol = stateViolations(grid, pi, i, j)
+      violation_map[i][j] = viol
+      iteration_map[i][j] = iter + 1
+  if do_print:
+    # print("Policy Violation Map:")
+    # print(violation_map)
+    # print("Iteration Map:")
+    # print(iteration_map)
+    print("Average Policy Violation Count: " + str(np.mean(violation_map)))
+    # print("Standard Deviation Violation Count: " + str(round(np.std(violation_map), 3)))
+    print("Average Iteration Count: " + str(np.mean(iteration_map)))
+    # print("Standard Deviation Iteration Count: " + str(round(np.std(iteration_map), 3)))
+  return (np.mean(iteration_map), np.mean(violation_map))
 
 # returns number of violations in a state
 
 
 def stateViolations(grid, pi, r, c):
-  if grid[r][c] != 6: return 0
+  if grid[r][c] != 6: return (0, 0)
   maxprob = max(pi[r*ncols+c, :])
   a = 6
   for ana in range(5):
@@ -166,10 +175,14 @@ def stateViolations(grid, pi, r, c):
   grid[r][c] = a
   r += acts[a][0]
   c += acts[a][1]
+  iter, viol = stateViolations(grid, pi, r, c)
+  if grid[r][c] < 4:
+      iter += 1
   tile_type = grid_map[r][c]
   if tile_type == 1 or tile_type == 2 or tile_type == 3:
-	  return stateViolations(grid, pi, r, c) + 1
-  return stateViolations(grid, pi, r, c)
+	  viol += 1
+  return (iter, viol)
+
 
 
 def findpol(grid, pi, r, c):
@@ -251,17 +264,16 @@ def findPaths(pi, startr=0, startc=0):
   return grid1
 
 
-# global has_feedback  
-# has_feedback = False 
 
-# def set_scalar(input):
-# 	global scalar 
-# 	scalar = input
-# 	has_feedback = True
-# 	print(scalar)
+def set_scalar(input):
+  global scalar 
+  scalar = input
+  # print(scalar)
+  plt.close()
 
 def printGrid(r, c, nr, nc, action, piout):
   plt.close() 
+  # plt.ion()
   move_grid = np.empty(shape=(nrows, ncols), dtype='str')
   move_grid[r][c] = '^>v<x'[action]
   # move_grid[nr][nr] = "o"
@@ -273,19 +285,10 @@ def printGrid(r, c, nr, nc, action, piout):
 
   sns.heatmap(grid_map, ax=ax1, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False, cbar=False, annot=move_grid, fmt="", annot_kws={"size": 30}, linewidths=1, linecolor="gray")
   sns.heatmap(grid_map, ax=ax2, cmap=sns.xkcd_palette(colors), yticklabels=False, xticklabels=False, cbar=False, annot=next_moves_grid, fmt="", annot_kws={"size": 30}, linewidths=1, linecolor="gray")
-  # ax0 = plt.axes([0.6, 0.02, 0.1, 0.075])
-  # ax1 = plt.axes([0.71, 0.02, 0.1, 0.075])
-  # ax2 = plt.axes([0.82, 0.02, 0.1, 0.075])
-  # b0 = Button(ax0, '-1')
-  # b0.on_clicked(lambda x: set_scalar(-1))
-  # b1 = Button(ax1, '0')
-  # b1.on_clicked(lambda x: set_scalar(0))
-  # b2 = Button(ax2, '1')
-  # b2.on_clicked(lambda x: set_scalar(1))
   ax1.set_title('Robot Action')
   ax2.set_title('Robot Most Likely Pathways')
   plt.draw()
-  plt.show(block = False)
+  
 	
 
 def chooseAction(pi, r, c):
@@ -302,7 +305,7 @@ def chooseAction(pi, r, c):
 
 	action_prob = action_prob / np.sum(action_prob)
 	print("Action Probabilities (Up, Right, Down, Left, Stay): ")
-	print(action_prob)
+	print(np.round(action_prob, 3))
 
 	r = random.uniform(0, 1)
 	# print("Random Number: " + str(r))
@@ -332,14 +335,16 @@ def chooseAction(pi, r, c):
 # get to goal as quick as possible
 # r = np.array([-1, 0, 0, 0, 1])
 
+# r = np.array([0.1, -.2, -.6, -.2, 0.7])
 # rk = torch.tensor(r,dtype=dtype,requires_grad=False)
 # piout, Qout = forward(rk)
 # policyViolations(piout)
+# printGrid(0,0,0,0,4,piout)
+# plt.show()
 
 
 
-
-learning_rate = 0.02
+learning_rate = 0.0025
 
 # initial random guess on r
 # r = np.random.rand(5)*2-1
@@ -348,6 +353,7 @@ r = np.array([0, 0, 0, 0, 1])
 rk = torch.tensor(r, dtype=dtype, requires_grad=True)
 lossList = []
 pvList = []
+iterList = []
 
 row_start = 0
 column_start = 0
@@ -356,14 +362,16 @@ column_dest = 9
 
 p = 0
 #basic map
-# p_rows = [0,4,0,4,4,0]
-# p_cols = [6,3,1,9,0,0]
+# p_rows = [0,4,0,4,0,0]
+# p_cols = [6,3,1,9,4,0]
+# p_rows = [0,4,0,0,4,0,4,0]
+# p_cols = [6,3,1,5,9,4,0,0]
 #complicated map
-# p_rows = [0]
-# p_cols = [0]
+p_rows = [0]
+p_cols = [0]
 # #open hall map
-p_rows = [0,0,0,2,2]
-p_cols = [6,7,0,3,6]
+# p_rows = [0,0,0,2,2]
+# p_cols = [6,7,0,3,6]
 
 row_state = row_start
 column_state = column_start
@@ -386,6 +394,18 @@ while(reset_count < resets):
     reset_count += 1
 
   piout, Qout = forward(rk)
+  if False:
+    print(loss, rk)
+    # lossList.append(loss.item())
+    iter, viol = policyViolations(piout)
+    pvList.append(viol)
+    iterList.append(iter)
+  else:
+    iter, viol = policyViolations(piout)
+    pvList.append(viol)
+    iterList.append(iter)
+
+
   action = chooseAction(piout, row_state, column_state)
   # scalar_feedback = input("Give the robot feedback on it's action (-1, 0, 1): ")
   # for i in range(len(trajacts)):
@@ -429,15 +449,38 @@ while(reset_count < resets):
     # has_feedback = False
     # print(scalar)
     scalar_feedback = 0
+    plt.text(0, 5.65, "Give the robot feed-")
+    plt.text(0, 6.15, "back on it's action:")
+    # ax0 = plt.axes([0.38, 0.02, 0.1, 0.075])
+    ax1 = plt.axes([0.49, 0.02, 0.1, 0.075])
+    ax2 = plt.axes([0.6, 0.02, 0.1, 0.075])
+    ax3 = plt.axes([0.71, 0.02, 0.1, 0.075])
+    # ax4 = plt.axes([0.82, 0.02, 0.1, 0.075])
+    # b0 = Button(ax0, '-2')
+    # b0.on_clicked(lambda x: set_scalar(-2))
+    b1 = Button(ax1, '-1')
+    b1.on_clicked(lambda x: set_scalar(-1))
+    b2 = Button(ax2, '0')
+    b2.on_clicked(lambda x: set_scalar(0))
+    b3 = Button(ax3, '1')
+    b3.on_clicked(lambda x: set_scalar(1))
+    # b4 = Button(ax4, '2')
+    # b4.on_clicked(lambda x: set_scalar(2))
+    plt.draw()
+    # plt.ion()
+    plt.show()
     try: 
-      input_text = input("Give the robot scalar feedback on it's action: ")
-      scalar_feedback = float(input_text)
-    except ValueError:
+      # input_text = float(input("Give the robot scalar feedback on it's action: "))
+      # scalar_feedback = input_text
+      scalar_feedback = scalar
+      # print(scalar_feedback)
+      
+    except:
       print("Non-Numerical Value Given. Feedback will be 0 for this action")
       time.sleep(1.5)
-    scale = clip(scalar_feedback / pi_action_state.item(), -1.5, 6)
+    scale = clip(scalar_feedback / pi_action_state.item(), -2, 1)
     # scale = scalar_feedback / pi_action_state.item()
-    print("rk Scale: " + str(scale))
+    # print("rk Scale: " + str(scale))
     # rk -= learning_rate * grads_value
     rk -= (learning_rate * grads_value) * scale
     # multiply by the scalar number divided by the negative log
@@ -450,6 +493,11 @@ while(reset_count < resets):
     rk_max = torch.max(rk)
     # rk.copy_(2 * ((rk - rk_min) / (rk_max - rk_min)) - 1)
     rk.grad.zero_()
+    
+        # lossList.append(loss.item())
+    # print("Loss, Reward (White, Blue, Orange, Yellow, Green): ")
+    # print(loss, rk)    
+
 
   # rk -= learning_rate * grads_value
   # [-0.0377, -0.0876, -0.0304, -0.3253,  1.3532]
@@ -457,27 +505,30 @@ while(reset_count < resets):
 
   # [-0.0629, -0.0807, -0.0205, -0.0030,  0.9147]
   # [-0.2615, -0.2069, -0.0045,  0.0909,  1.0278]
-  lossList.append(loss.item())
-  print("Loss, Reward (White, Blue, Orange, Yellow, Green): ")
-  print(loss, rk)
   row_state = nr
   column_state = nc
 
 
+  # if iter % 10 == 0:
+  
+policyViolations(piout, do_print=True)
+# plt.close()
+# plt.plot(lossList)
+# plt.xlabel('Iteration')
+# plt.ylabel('Loss')
+# plt.suptitle('Scalar-Feedback Loss Graph')
+# plt.show()
 
-  # plotpolicy(piout,0,0)
-  pvList.append(policyViolations(piout))
-  lossList.append(loss.item())
-
-
-plt.plot(lossList)
-plt.xlabel('Iteration')
-plt.ylabel('Loss')
-plt.suptitle('Action-Feedback Loss Graph')
-plt.show()
+plt.close()
 plt.plot(pvList)
 plt.xlabel('Iteration')
 plt.ylabel('Policy Violation Average')
-plt.suptitle('Action-Feedback Average Violation Graph')
+plt.suptitle('Scalar-Feedback Average Violation Graph')
 plt.show()
 
+plt.close()
+plt.plot(iterList)
+plt.xlabel('Iteration')
+plt.ylabel('Steps to Goal')
+plt.suptitle('Scalar-Feedback Average Steps Graph')
+plt.show()
