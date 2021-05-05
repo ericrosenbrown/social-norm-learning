@@ -21,18 +21,18 @@ ncats = 5
 # map state categories to states
 # want m s.t. r %*% m = reward function
 # first, just a map of the indexes
-# grid_map = np.array([
-# 	[0, 0, 1, 1, 0, 0, 0, 2, 2, 4],
-# 	[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-# 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-# 	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0],
-# 	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0]])
 grid_map = np.array([
-	[0, 1, 1, 1, 0, 0, 0, 2, 2, 4],
-	[0, 1, 1, 1, 0, 3, 0, 0, 2, 0],
-	[0, 1, 1, 0, 0, 3, 3, 0, 2, 0],
-	[0, 1, 1, 0, 3, 3, 3, 0, 2, 0],
-	[0, 0, 0, 0, 3, 3, 3, 0, 0, 0]])
+	[0, 0, 1, 1, 0, 0, 0, 2, 2, 4],
+	[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0],
+	[0, 0, 0, 0, 3, 3, 3, 3, 0, 0]])
+# grid_map = np.array([
+# 	[0, 1, 1, 1, 0, 0, 0, 2, 2, 4],
+# 	[0, 1, 1, 1, 0, 3, 0, 0, 2, 0],
+# 	[0, 1, 1, 0, 0, 3, 3, 0, 2, 0],
+# 	[0, 1, 1, 0, 3, 3, 3, 0, 2, 0],
+# 	[0, 0, 0, 0, 3, 3, 3, 0, 0, 0]])
 # grid_map = np.array([
 # 	[0, 1, 1, 1, 3, 3, 3, 2, 2, 4],
 # 	[0, 0, 0, 0, 0, 0, 0, 2, 2, 0],
@@ -151,12 +151,12 @@ def policyViolations(pi, do_print=True):
         grid += [line]
       iter, viol = stateViolations(grid, pi, i, j)
       violation_map[i][j] = viol
-      iteration_map[i][j] = iter + 1
+      iteration_map[i][j] = iter
   if do_print:
-    # print("Policy Violation Map:")
-    # print(violation_map)
-    # print("Iteration Map:")
-    # print(iteration_map)
+    print("Policy Violation Map:")
+    print(violation_map)
+    print("Iteration Map:")
+    print(iteration_map)
     print("Average Policy Violation Count: " + str(np.mean(violation_map)))
     # print("Standard Deviation Violation Count: " + str(round(np.std(violation_map), 3)))
     print("Average Iteration Count: " + str(np.mean(iteration_map)))
@@ -335,7 +335,7 @@ def chooseAction(pi, r, c):
 # get to goal as quick as possible
 # r = np.array([-1, 0, 0, 0, 1])
 
-# r = np.array([0.1, -.2, -.6, -.2, 0.7])
+# r = np.array([0.0479, -.0492, -.1264, -.0389, 0.6370])
 # rk = torch.tensor(r,dtype=dtype,requires_grad=False)
 # piout, Qout = forward(rk)
 # policyViolations(piout)
@@ -344,7 +344,7 @@ def chooseAction(pi, r, c):
 
 
 
-learning_rate = 0.0025
+learning_rate = 0.0055
 
 # initial random guess on r
 # r = np.random.rand(5)*2-1
@@ -367,8 +367,8 @@ p = 0
 # p_rows = [0,4,0,0,4,0,4,0]
 # p_cols = [6,3,1,5,9,4,0,0]
 #complicated map
-p_rows = [0]
-p_cols = [0]
+p_rows = [0, 4, 2, 4]
+p_cols = [0, 7, 4, 3]
 # #open hall map
 # p_rows = [0,0,0,2,2]
 # p_cols = [6,7,0,3,6]
@@ -478,7 +478,7 @@ while(reset_count < resets):
     except:
       print("Non-Numerical Value Given. Feedback will be 0 for this action")
       time.sleep(1.5)
-    scale = clip(scalar_feedback / pi_action_state.item(), -2, 1)
+    scale = clip(scalar_feedback / pi_action_state.item(), -1, 2)
     # scale = scalar_feedback / pi_action_state.item()
     # print("rk Scale: " + str(scale))
     # rk -= learning_rate * grads_value
