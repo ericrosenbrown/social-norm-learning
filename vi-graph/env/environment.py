@@ -16,27 +16,120 @@ class Environment:
         self.act_map = Worlds.act_map
         self.act_name = Worlds.act_name
         self.dtype = torch.float32
+        self.action_feedback_map = {
+            "w": 0,
+            "d": 1,
+            "s": 2,
+            "a": 3,
+            "stay": 4
+        }
+
+        self.SCALAR_FEEDBACK = 100
+        self.ACTION_FEEDBACK = 200
+
+    def get_world(self):
+        return copy.deepcopy(self.world)
+
+    def inform_human(self, action_idx):
+        """
+        The environment informs the human what action the agent is planning to take
+        """
+        print(f"The agent plans to do action: {self.act_name[action_idx]}")
+
+    def request_feedback_from_human(self):
+        """
+        The agent will request a specific feedback type from the human
+        """
+        pass
+
+    def acquire_feedback(self, action_idx, r, c, source_is_human=True):
+        """
+        Acquires feedback from a source
+        """
+        valid_feedback = {"-2","-1","0","1","2","w","a","s","d","stay", "x"}
+        feedback_str = None
+        valid = True
+        while feedback_str not in valid_feedback:
+            if source_is_human:
+                if not valid: print("Invalid feedback specified")
+                print("Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)")
+                print("Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2")
+                feedback_str = input("Human Feedback: ")
+            else:
+                feedback_str = self.feedback_source(action_idx, r, c)
+            valid = False
+        return feedback_str
+
+    def classify_feedback(self, feedback):
+        """
+        Classifies the feedback into a feedback category
+        """
+        if feedback in "-2 -1 0":
+            return self.SCALAR_FEEDBACK
+        else:
+            return self.ACTION_FEEDBACK
+
+    def feedback_to_scalar(self, feedback):
+        """
+        Converts feedback to scalar
+        """
+        return int(feedback)
+
+    def feedback_to_demonstration(self, feedback, r, c):
+        """
+        Converts feedback to trajact and trajcoord
+        """
+        return [self.action_feedback_map[feedback]], [(r,c)]
+
+    def feedback_source(self, action, r, c):
+        """
+        A simulator for providing feedback
+        """
+        ## TODO: Implement a feedback simulator to simulate giving feedback
+        return None
+
+    def random_start_state(self):
+        """
+        Select a random start state (chooses a random (r,c) that is a 0 colored square)
+        """
+        indices = np.flatnonzero(self.world == 0)
+        idx = np.random.choice(indices)
+        _, ncols = self.world.shape
+        r = idx // ncols
+        c = idx %  ncols
+        return r, c
+
+    def get_termination_states(self):
+        """
+        Return the location of the termination state
+        """
+        pass
+
+    def get_goal_state(self):
+        """
+        Returns the color that is considered a goal
+        """
+        return 4
 
     def get_start_state(self):
         return copy.copy(self.state_start)
+
+    def step(self, r, c, action):
+        """
+        Transitions r,c based on action
+        """
+        rr, cc = self.actions[action]
+        return (r + rr, c + cc)
 
     def get_single_timestep_action(self):
         """
         Retrieves a single discrete timestep action from a human
         """
         k = input("Action: ")
-        if k =="w":
-            return 0
-        elif k =="d":
-            return 1
-        elif k == "s":
-            return 2
-        elif k =="a":
-            return 3
-        elif k == "stop":
+        if k not in self.action_feedback_map:
             return -1
         else:
-            return 4
+            return self.action_feedback_map[k]
 
     def acquire_human_demonstration(self, max_length=15):
         """
