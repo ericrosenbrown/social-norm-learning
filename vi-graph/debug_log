@@ -1,0 +1,3114 @@
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.25 0.25 0.25 0.   0.25]
+Agent is currently at (1,0) on 0
+===================================
+0011000224
+R011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: UP
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([-7.1738e-02, -1.2073e-01, -1.1662e-04,  1.9260e-01, -1.4118e-05],
+       requires_grad=True)
+(1, 0): D -> 0.78762805
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.062 0.342 0.473 0.062 0.062]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.39  0.539 0.    0.07 ]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: DOWN
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([-1.1799e-01, -2.0571e-01, -1.1662e-04,  3.2383e-01, -1.4118e-05],
+       requires_grad=True)
+(1, 0): D -> 0.6485217
+(0, 0): D -> 0.60251397
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.001 0.44  0.523 0.018 0.018]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.001 0.448 0.533 0.    0.018]
+Agent is currently at (1,0) on 0
+===================================
+0011000224
+R011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: DOWN
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([-1.5423e-01, -2.5563e-01, -1.1662e-04,  4.0999e-01, -1.4118e-05],
+       requires_grad=True)
+(1, 0): D -> 0.6084945
+(0, 0): D -> 0.5641198
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.503 0.487 0.005 0.005]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.506 0.489 0.    0.005]
+Agent is currently at (2,0) on 0
+===================================
+0011000224
+0011000000
+R000000000
+0033333300
+0000333300
+The agent plans to do action: RIGHT
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: d
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([-1.7593e-01, -2.8003e-01, -1.1662e-04,  4.5609e-01, -1.4118e-05],
+       requires_grad=True)
+(1, 0): D -> 0.59696084
+(0, 0): D -> 0.55261123
+(2, 0): R -> 0.6886652
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.497 0.502 0.    0.002]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.497 0.502 0.    0.002]
+Agent is currently at (2,1) on 0
+===================================
+0011000224
+0011000000
+0R00000000
+0033333300
+0000333300
+The agent plans to do action: DOWN
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: d
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([-1.9342e-01, -2.9809e-01, -1.1662e-04,  4.9165e-01, -1.4118e-05],
+       requires_grad=True)
+(1, 0): D -> 0.5911306
+(0, 0): D -> 0.54625887
+(2, 0): R -> 0.68987775
+(2, 1): R -> 0.6974246
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.999 0.    0.    0.001]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.999 0.    0.    0.001]
+Agent is currently at (3,1) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0R33333300
+0000333300
+The agent plans to do action: RIGHT
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 7.2609e-02, -2.5406e-01, -1.1662e-04,  1.8159e-01, -1.4118e-05],
+       requires_grad=True)
+(1, 0): D -> 1.0436164
+(0, 0): D -> 1.1083266
+(2, 0): R -> 0.9054489
+(2, 1): R -> 0.90755516
+(3, 1): U -> 2.9281332
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.075 0.46  0.073 0.071 0.321]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.075 0.46  0.073 0.071 0.321]
+Agent is currently at (3,2) on 3
+===================================
+0011000224
+0011000000
+0000000000
+00R3333300
+0000333300
+The agent plans to do action: RIGHT
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 7.9067e-02, -2.3208e-01, -1.1648e-04,  1.5315e-01, -1.4117e-05],
+       requires_grad=True)
+(1, 0): D -> 1.1663253
+(0, 0): D -> 1.2585877
+(2, 0): R -> 1.0374395
+(2, 1): R -> 0.971207
+(3, 1): U -> 2.4590733
+(3, 2): U -> 2.3080611
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.082 0.361 0.126 0.176 0.255]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.082 0.361 0.126 0.176 0.255]
+Agent is currently at (3,3) on 3
+===================================
+0011000224
+0011000000
+0000000000
+003R333300
+0000333300
+The agent plans to do action: RIGHT
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 9.1078e-02, -2.3104e-01, -1.1500e-04,  1.4010e-01, -1.4115e-05],
+       requires_grad=True)
+(1, 0): D -> 1.301803
+(0, 0): D -> 1.4003392
+(2, 0): R -> 1.1991196
+(2, 1): R -> 1.0674781
+(3, 1): U -> 2.140103
+(3, 2): U -> 2.0811138
+(3, 3): U -> 2.243652
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.087 0.255 0.257 0.169 0.23 ]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.087 0.255 0.257 0.169 0.23 ]
+Agent is currently at (3,4) on 3
+===================================
+0011000224
+0011000000
+0000000000
+0033R33300
+0000333300
+The agent plans to do action: DOWN
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.3744, -0.2621, -0.0063, -0.1054, -0.0005], requires_grad=True)
+(1, 0): D -> 1.6119137
+(0, 0): D -> 1.6100659
+(2, 0): R -> 1.6196588
+(2, 1): R -> 1.641626
+(3, 1): U -> 1.3874688
+(3, 2): U -> 1.1109204
+(3, 3): U -> 0.6873804
+(3, 4): U -> 0.029636174
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.007 0.    0.007 0.978 0.007]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.008 0.    0.    0.985 0.007]
+Agent is currently at (4,4) on 3
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+0000R33300
+The agent plans to do action: LEFT
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: a
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.4351, -0.2740, -0.0100, -0.1503, -0.0008], requires_grad=True)
+(1, 0): D -> 1.6103165
+(0, 0): D -> 1.609569
+(2, 0): R -> 1.6142386
+(2, 1): R -> 1.6244158
+(3, 1): U -> 1.387058
+(3, 2): U -> 1.1045618
+(3, 3): U -> 0.6907237
+(3, 4): U -> 0.010988064
+(4, 4): L -> 0.008327431
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.001 0.001 0.331 0.336 0.331]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.001 0.001 0.    0.503 0.495]
+Agent is currently at (4,3) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+000R333300
+The agent plans to do action: LEFT
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: a
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.4631, -0.2819, -0.0127, -0.1674, -0.0011], requires_grad=True)
+(1, 0): D -> 1.6099893
+(0, 0): D -> 1.6094962
+(2, 0): R -> 1.6128399
+(2, 1): R -> 1.6200197
+(3, 1): U -> 1.3868952
+(3, 2): U -> 1.1029003
+(3, 3): U -> 0.6915824
+(3, 4): U -> 0.0070844907
+(4, 4): L -> 0.0053480566
+(4, 3): L -> 1.0925078
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.247 0.25  0.253 0.25 ]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.001 0.329 0.    0.337 0.333]
+Agent is currently at (4,2) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+00R0333300
+The agent plans to do action: LEFT
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: a
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.4761, -0.2883, -0.0151, -0.1714, -0.0013], requires_grad=True)
+(1, 0): D -> 1.6099541
+(0, 0): D -> 1.6095008
+(2, 0): R -> 1.6123681
+(2, 1): R -> 1.6185699
+(3, 1): U -> 1.3867761
+(3, 2): U -> 1.1022424
+(3, 3): U -> 0.6916994
+(3, 4): U -> 0.0059889723
+(4, 4): L -> 0.0045167734
+(4, 3): L -> 1.0932943
+(4, 2): L -> 1.3767684
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2   0.198 0.2   0.201 0.2  ]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.25  0.248 0.    0.251 0.25 ]
+Agent is currently at (4,1) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+0R00333300
+The agent plans to do action: LEFT
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.4863, -0.2942, -0.0174, -0.1732, -0.0015], requires_grad=True)
+(1, 0): D -> 1.6099272
+(0, 0): D -> 1.6095145
+(2, 0): R -> 1.6120734
+(2, 1): R -> 1.6176392
+(3, 1): U -> 1.3866942
+(3, 2): U -> 1.1017992
+(3, 3): U -> 0.6917257
+(3, 4): U -> 0.0053307386
+(4, 4): L -> 0.004018203
+(4, 3): L -> 1.0937808
+(4, 2): L -> 1.3776525
+(4, 1): U -> 1.6082529
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2   0.199 0.2   0.2   0.2  ]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.334 0.333 0.    0.    0.334]
+Agent is currently at (4,0) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+R000333300
+The agent plans to do action: UP
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.4944, -0.2996, -0.0195, -0.1736, -0.0017], requires_grad=True)
+(1, 0): D -> 1.6099219
+(0, 0): D -> 1.6095312
+(2, 0): R -> 1.6118649
+(2, 1): R -> 1.6169907
+(3, 1): U -> 1.3866148
+(3, 2): U -> 1.1014609
+(3, 3): U -> 0.69170153
+(3, 4): U -> 0.0048987856
+(4, 4): L -> 0.0036916244
+(4, 3): L -> 1.0941006
+(4, 2): L -> 1.3782415
+(4, 1): U -> 1.6083113
+(4, 0): U -> 1.6086035
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2   0.199 0.2   0.2   0.2  ]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.25  0.249 0.25  0.    0.25 ]
+Agent is currently at (3,0) on 0
+===================================
+0011000224
+0011000000
+0000000000
+R033333300
+0000333300
+The agent plans to do action: UP
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5008, -0.3048, -0.0215, -0.1726, -0.0019], requires_grad=True)
+(1, 0): D -> 1.6099219
+(0, 0): D -> 1.6095464
+(2, 0): R -> 1.6117313
+(2, 1): R -> 1.616565
+(3, 1): U -> 1.3865577
+(3, 2): U -> 1.1012193
+(3, 3): U -> 0.69164747
+(3, 4): U -> 0.004649883
+(4, 4): L -> 0.0035038511
+(4, 3): L -> 1.0942817
+(4, 2): L -> 1.3785824
+(4, 1): U -> 1.6083479
+(4, 0): U -> 1.608633
+(3, 0): U -> 1.6082464
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.25  0.249 0.25  0.    0.25 ]
+Agent is currently at (2,0) on 0
+===================================
+0011000224
+0011000000
+R000000000
+0033333300
+0000333300
+The agent plans to do action: UP
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: d
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5092, -0.3085, -0.0228, -0.1757, -0.0020], requires_grad=True)
+(1, 0): D -> 1.6098958
+(0, 0): D -> 1.6095374
+(2, 0): R -> 1.6115092
+(2, 1): R -> 1.6159105
+(3, 1): U -> 1.3865201
+(3, 2): U -> 1.1009656
+(3, 3): U -> 0.6917702
+(3, 4): U -> 0.004154359
+(4, 4): L -> 0.0031288886
+(4, 3): L -> 1.0946721
+(4, 2): L -> 1.3792921
+(4, 1): U -> 1.6084452
+(4, 0): U -> 1.608707
+(3, 0): U -> 1.6083629
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.25 0.25 0.25 0.   0.25]
+Agent is currently at (1,0) on 0
+===================================
+0011000224
+R011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: UP
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5151, -0.3121, -0.0245, -0.1763, -0.0022], requires_grad=True)
+(1, 0): D -> 1.6098752
+(0, 0): D -> 1.6095357
+(2, 0): R -> 1.6113946
+(2, 1): R -> 1.6155224
+(3, 1): U -> 1.3864919
+(3, 2): U -> 1.100781
+(3, 3): U -> 0.6917827
+(3, 4): U -> 0.0038945118
+(4, 4): L -> 0.0029326724
+(4, 3): L -> 1.0948769
+(4, 2): L -> 1.3796563
+(4, 1): U -> 1.6084812
+(4, 0): U -> 1.6087321
+(3, 0): U -> 1.6084086
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5219, -0.3154, -0.0257, -0.1784, -0.0023], requires_grad=True)
+(1, 0): D -> 1.6098554
+(0, 0): D -> 1.609544
+(2, 0): R -> 1.6112504
+(2, 1): R -> 1.6150783
+(3, 1): U -> 1.3864673
+(3, 2): U -> 1.1006017
+(3, 3): U -> 0.6918601
+(3, 4): U -> 0.003570845
+(4, 4): L -> 0.0026881434
+(4, 3): L -> 1.0951445
+(4, 2): L -> 1.3801241
+(4, 1): U -> 1.608546
+(4, 0): U -> 1.6087862
+(3, 0): U -> 1.608478
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5256, -0.3191, -0.0273, -0.1767, -0.0025], requires_grad=True)
+(1, 0): D -> 1.60986
+(0, 0): D -> 1.609544
+(2, 0): R -> 1.6111984
+(2, 1): R -> 1.6149125
+(3, 1): U -> 1.3864274
+(3, 2): U -> 1.1004848
+(3, 3): U -> 0.691794
+(3, 4): U -> 0.003497092
+(4, 4): L -> 0.0026327427
+(4, 3): L -> 1.0951929
+(4, 2): L -> 1.3802333
+(4, 1): U -> 1.6085438
+(4, 0): U -> 1.6087823
+(3, 0): U -> 1.6084757
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5258, -0.3216, -0.0286, -0.1731, -0.0027], requires_grad=True)
+(1, 0): D -> 1.6098974
+(0, 0): D -> 1.6095631
+(2, 0): R -> 1.6112298
+(2, 1): R -> 1.6150088
+(3, 1): U -> 1.3864092
+(3, 2): U -> 1.1004734
+(3, 3): U -> 0.6916872
+(3, 4): U -> 0.0036155297
+(4, 4): L -> 0.0027223893
+(4, 3): L -> 1.0951014
+(4, 2): L -> 1.3800538
+(4, 1): U -> 1.6085142
+(4, 0): U -> 1.6087701
+(3, 0): U -> 1.6084452
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5325, -0.3229, -0.0293, -0.1777, -0.0027], requires_grad=True)
+(1, 0): D -> 1.6098462
+(0, 0): D -> 1.6095425
+(2, 0): R -> 1.6110824
+(2, 1): R -> 1.6145397
+(3, 1): U -> 1.3864119
+(3, 2): U -> 1.1003313
+(3, 3): U -> 0.69184005
+(3, 4): U -> 0.0032401069
+(4, 4): L -> 0.002438536
+(4, 3): L -> 1.0954108
+(4, 2): L -> 1.3806114
+(4, 1): U -> 1.6086042
+(4, 0): U -> 1.608831
+(3, 0): U -> 1.6085396
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5320, -0.3244, -0.0306, -0.1745, -0.0029], requires_grad=True)
+(1, 0): D -> 1.609866
+(0, 0): D -> 1.6095654
+(2, 0): R -> 1.6111137
+(2, 1): R -> 1.6146399
+(3, 1): U -> 1.3863925
+(3, 2): U -> 1.1003215
+(3, 3): U -> 0.6917389
+(3, 4): U -> 0.00335355
+(4, 4): L -> 0.00252452
+(4, 3): L -> 1.0953133
+(4, 2): L -> 1.3804352
+(4, 1): U -> 1.6085616
+(4, 0): U -> 1.6087998
+(3, 0): U -> 1.6085007
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5366, -0.3268, -0.0320, -0.1753, -0.0030], requires_grad=True)
+(1, 0): D -> 1.6098622
+(0, 0): D -> 1.6095593
+(2, 0): R -> 1.611029
+(2, 1): R -> 1.6144022
+(3, 1): U -> 1.3863758
+(3, 2): U -> 1.1002303
+(3, 3): U -> 0.69178885
+(3, 4): U -> 0.0031855723
+(4, 4): L -> 0.0023976676
+(4, 3): L -> 1.0954577
+(4, 2): L -> 1.3806887
+(4, 1): U -> 1.6086032
+(4, 0): U -> 1.6088295
+(3, 0): U -> 1.608548
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5401, -0.3273, -0.0329, -0.1768, -0.0031], requires_grad=True)
+(1, 0): D -> 1.609837
+(0, 0): D -> 1.6095545
+(2, 0): R -> 1.610971
+(2, 1): R -> 1.6142036
+(3, 1): U -> 1.3863776
+(3, 2): U -> 1.1001685
+(3, 3): U -> 0.6918349
+(3, 4): U -> 0.003032868
+(4, 4): L -> 0.0022823014
+(4, 3): L -> 1.0955765
+(4, 2): L -> 1.3809185
+(4, 1): U -> 1.608628
+(4, 0): U -> 1.6088508
+(3, 0): U -> 1.6085762
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5432, -0.3279, -0.0339, -0.1780, -0.0032], requires_grad=True)
+(1, 0): D -> 1.609821
+(0, 0): D -> 1.6095592
+(2, 0): R -> 1.6109152
+(2, 1): R -> 1.6140324
+(3, 1): U -> 1.3863713
+(3, 2): U -> 1.1001096
+(3, 3): U -> 0.69188446
+(3, 4): U -> 0.0029034405
+(4, 4): L -> 0.00218463
+(4, 3): L -> 1.0956918
+(4, 2): L -> 1.3811185
+(4, 1): U -> 1.6086607
+(4, 0): U -> 1.6088753
+(3, 0): U -> 1.6086037
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5504, -0.3272, -0.0344, -0.1850, -0.0033], requires_grad=True)
+(1, 0): D -> 1.6097745
+(0, 0): D -> 1.609521
+(2, 0): R -> 1.6107657
+(2, 1): R -> 1.6135756
+(3, 1): U -> 1.3863871
+(3, 2): U -> 1.100008
+(3, 3): U -> 0.6920925
+(3, 4): U -> 0.0025260737
+(4, 4): L -> 0.0018997942
+(4, 3): L -> 1.0960141
+(4, 2): L -> 1.3817068
+(4, 1): U -> 1.6087592
+(4, 0): U -> 1.6089499
+(3, 0): U -> 1.6087172
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5548, -0.3279, -0.0352, -0.1876, -0.0034], requires_grad=True)
+(1, 0): D -> 1.6097317
+(0, 0): D -> 1.6095142
+(2, 0): R -> 1.6106985
+(2, 1): R -> 1.6133524
+(3, 1): U -> 1.3863897
+(3, 2): U -> 1.0999472
+(3, 3): U -> 0.69217813
+(3, 4): U -> 0.0023561437
+(4, 4): L -> 0.0017715282
+(4, 3): L -> 1.0961683
+(4, 2): L -> 1.3819814
+(4, 1): U -> 1.6088138
+(4, 0): U -> 1.6089774
+(3, 0): U -> 1.60875
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5511, -0.3282, -0.0360, -0.1825, -0.0035], requires_grad=True)
+(1, 0): D -> 1.6097851
+(0, 0): D -> 1.6095287
+(2, 0): R -> 1.6107825
+(2, 1): R -> 1.6135992
+(3, 1): U -> 1.3863822
+(3, 2): U -> 1.0999933
+(3, 3): U -> 0.6920414
+(3, 4): U -> 0.0025667083
+(4, 4): L -> 0.0019304897
+(4, 3): L -> 1.0959804
+(4, 2): L -> 1.3816458
+(4, 1): U -> 1.6087463
+(4, 0): U -> 1.6089346
+(3, 0): U -> 1.608705
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5480, -0.3283, -0.0368, -0.1781, -0.0036], requires_grad=True)
+(1, 0): D -> 1.6098013
+(0, 0): D -> 1.6095524
+(2, 0): R -> 1.6108558
+(2, 1): R -> 1.6138232
+(3, 1): U -> 1.386368
+(3, 2): U -> 1.1000322
+(3, 3): U -> 0.6919115
+(3, 4): U -> 0.0027647053
+(4, 4): L -> 0.0020800394
+(4, 3): L -> 1.0958029
+(4, 2): L -> 1.3813398
+(4, 1): U -> 1.6086948
+(4, 0): U -> 1.6088951
+(3, 0): U -> 1.6086395
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5497, -0.3279, -0.0375, -0.1791, -0.0037], requires_grad=True)
+(1, 0): D -> 1.6097927
+(0, 0): D -> 1.6095462
+(2, 0): R -> 1.6108214
+(2, 1): R -> 1.6137397
+(3, 1): U -> 1.3863635
+(3, 2): U -> 1.10001
+(3, 3): U -> 0.6919453
+(3, 4): U -> 0.0026937015
+(4, 4): L -> 0.0020264043
+(4, 3): L -> 1.0958672
+(4, 2): L -> 1.3814465
+(4, 1): U -> 1.6087115
+(4, 0): U -> 1.6089126
+(3, 0): U -> 1.6086577
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5572, -0.3272, -0.0379, -0.1865, -0.0037], requires_grad=True)
+(1, 0): D -> 1.6097409
+(0, 0): D -> 1.6095202
+(2, 0): R -> 1.6106756
+(2, 1): R -> 1.6133006
+(3, 1): U -> 1.3863783
+(3, 2): U -> 1.0999181
+(3, 3): U -> 0.6921594
+(3, 4): U -> 0.0023269884
+(4, 4): L -> 0.0017496744
+(4, 3): L -> 1.0961862
+(4, 2): L -> 1.382031
+(4, 1): U -> 1.6088098
+(4, 0): U -> 1.6089652
+(3, 0): U -> 1.6087637
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5576, -0.3275, -0.0384, -0.1859, -0.0038], requires_grad=True)
+(1, 0): D -> 1.6097386
+(0, 0): D -> 1.6095256
+(2, 0): R -> 1.6106771
+(2, 1): R -> 1.613286
+(3, 1): U -> 1.3863842
+(3, 2): U -> 1.099907
+(3, 3): U -> 0.692147
+(3, 4): U -> 0.0023293782
+(4, 4): L -> 0.001751585
+(4, 3): L -> 1.0961816
+(4, 2): L -> 1.3820207
+(4, 1): U -> 1.6088076
+(4, 0): U -> 1.6089743
+(3, 0): U -> 1.6087652
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5580, -0.3273, -0.0390, -0.1856, -0.0038], requires_grad=True)
+(1, 0): D -> 1.6097348
+(0, 0): D -> 1.6095203
+(2, 0): R -> 1.6106778
+(2, 1): R -> 1.613283
+(3, 1): U -> 1.3863791
+(3, 2): U -> 1.0999013
+(3, 3): U -> 0.6921401
+(3, 4): U -> 0.002326152
+(4, 4): L -> 0.0017493161
+(4, 3): L -> 1.0961812
+(4, 2): L -> 1.3820261
+(4, 1): U -> 1.6088107
+(4, 0): U -> 1.6089759
+(3, 0): U -> 1.6087592
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5649, -0.3269, -0.0395, -0.1921, -0.0039], requires_grad=True)
+(1, 0): D -> 1.6096898
+(0, 0): D -> 1.6095035
+(2, 0): R -> 1.6105634
+(2, 1): R -> 1.61293
+(3, 1): U -> 1.3863974
+(3, 2): U -> 1.0998287
+(3, 3): U -> 0.69230974
+(3, 4): U -> 0.002041515
+(4, 4): L -> 0.0015344465
+(4, 3): L -> 1.0964379
+(4, 2): L -> 1.3824818
+(4, 1): U -> 1.6088903
+(4, 0): U -> 1.6090376
+(3, 0): U -> 1.6088461
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5704, -0.3271, -0.0399, -0.1966, -0.0040], requires_grad=True)
+(1, 0): D -> 1.6096616
+(0, 0): D -> 1.6094952
+(2, 0): R -> 1.610475
+(2, 1): R -> 1.6126705
+(3, 1): U -> 1.3864061
+(3, 2): U -> 1.0997629
+(3, 3): U -> 0.69241714
+(3, 4): U -> 0.0018483186
+(4, 4): L -> 0.0013889179
+(4, 3): L -> 1.0966214
+(4, 2): L -> 1.3827989
+(4, 1): U -> 1.6089396
+(4, 0): U -> 1.6090757
+(3, 0): U -> 1.6089125
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5750, -0.3278, -0.0408, -0.1992, -0.0041], requires_grad=True)
+(1, 0): D -> 1.6096408
+(0, 0): D -> 1.6094844
+(2, 0): R -> 1.61042
+(2, 1): R -> 1.6124926
+(3, 1): U -> 1.3863989
+(3, 2): U -> 1.0997056
+(3, 3): U -> 0.6924679
+(3, 4): U -> 0.0017210742
+(4, 4): L -> 0.0012930643
+(4, 3): L -> 1.0967295
+(4, 2): L -> 1.3830078
+(4, 1): U -> 1.6089768
+(4, 0): U -> 1.6090955
+(3, 0): U -> 1.6089376
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5741, -0.3274, -0.0412, -0.1981, -0.0041], requires_grad=True)
+(1, 0): D -> 1.6096438
+(0, 0): D -> 1.6094784
+(2, 0): R -> 1.6104397
+(2, 1): R -> 1.6125392
+(3, 1): U -> 1.3864057
+(3, 2): U -> 1.0997187
+(3, 3): U -> 0.6924442
+(3, 4): U -> 0.0017535555
+(4, 4): L -> 0.0013177132
+(4, 3): L -> 1.0966995
+(4, 2): L -> 1.382948
+(4, 1): U -> 1.6089586
+(4, 0): U -> 1.6090825
+(3, 0): U -> 1.6089314
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5782, -0.3266, -0.0416, -0.2027, -0.0042], requires_grad=True)
+(1, 0): D -> 1.6096257
+(0, 0): D -> 1.6094776
+(2, 0): R -> 1.610372
+(2, 1): R -> 1.6123444
+(3, 1): U -> 1.3864073
+(3, 2): U -> 1.0996716
+(3, 3): U -> 0.69253653
+(3, 4): U -> 0.0016107411
+(4, 4): L -> 0.0012100504
+(4, 3): L -> 1.0968482
+(4, 2): L -> 1.3831979
+(4, 1): U -> 1.6090019
+(4, 0): U -> 1.6091123
+(3, 0): U -> 1.6089749
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5828, -0.3266, -0.0422, -0.2062, -0.0042], requires_grad=True)
+(1, 0): D -> 1.6096013
+(0, 0): D -> 1.6094723
+(2, 0): R -> 1.6103191
+(2, 1): R -> 1.612174
+(3, 1): U -> 1.3864108
+(3, 2): U -> 1.0996289
+(3, 3): U -> 0.6925998
+(3, 4): U -> 0.0014859147
+(4, 4): L -> 0.0011161235
+(4, 3): L -> 1.0969543
+(4, 2): L -> 1.3834062
+(4, 1): U -> 1.609036
+(4, 0): U -> 1.6091383
+(3, 0): U -> 1.609007
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5846, -0.3258, -0.0425, -0.2085, -0.0043], requires_grad=True)
+(1, 0): D -> 1.609586
+(0, 0): D -> 1.6094761
+(2, 0): R -> 1.6102886
+(2, 1): R -> 1.6120963
+(3, 1): U -> 1.3864164
+(3, 2): U -> 1.0996174
+(3, 3): U -> 0.69264376
+(3, 4): U -> 0.0014259248
+(4, 4): L -> 0.0010708938
+(4, 3): L -> 1.0970154
+(4, 2): L -> 1.3835118
+(4, 1): U -> 1.6090474
+(4, 0): U -> 1.609149
+(3, 0): U -> 1.6090268
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5842, -0.3245, -0.0426, -0.2091, -0.0043], requires_grad=True)
+(1, 0): D -> 1.6095928
+(0, 0): D -> 1.6094661
+(2, 0): R -> 1.6102895
+(2, 1): R -> 1.6121047
+(3, 1): U -> 1.3864144
+(3, 2): U -> 1.0996273
+(3, 3): U -> 0.6926582
+(3, 4): U -> 0.0014236566
+(4, 4): L -> 0.0010693425
+(4, 3): L -> 1.09702
+(4, 2): L -> 1.3835193
+(4, 1): U -> 1.609062
+(4, 0): U -> 1.6091542
+(3, 0): U -> 1.609029
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5845, -0.3238, -0.0430, -0.2096, -0.0043], requires_grad=True)
+(1, 0): D -> 1.609586
+(0, 0): D -> 1.6094562
+(2, 0): R -> 1.6103009
+(2, 1): R -> 1.6120924
+(3, 1): U -> 1.386428
+(3, 2): U -> 1.099628
+(3, 3): U -> 0.69266343
+(3, 4): U -> 0.0014124947
+(4, 4): L -> 0.0010607502
+(4, 3): L -> 1.0970309
+(4, 2): L -> 1.3835291
+(4, 1): U -> 1.6090596
+(4, 0): U -> 1.609152
+(3, 0): U -> 1.6090268
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5853, -0.3231, -0.0432, -0.2105, -0.0044], requires_grad=True)
+(1, 0): D -> 1.6095845
+(0, 0): D -> 1.6094539
+(2, 0): R -> 1.6102833
+(2, 1): R -> 1.6120573
+(3, 1): U -> 1.3864226
+(3, 2): U -> 1.0996212
+(3, 3): U -> 0.6926923
+(3, 4): U -> 0.0013878435
+(4, 4): L -> 0.0010423131
+(4, 3): L -> 1.0970623
+(4, 2): L -> 1.3835866
+(4, 1): U -> 1.609071
+(4, 0): U -> 1.6091619
+(3, 0): U -> 1.6090382
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5860, -0.3210, -0.0433, -0.2129, -0.0044], requires_grad=True)
+(1, 0): D -> 1.6095691
+(0, 0): D -> 1.6094517
+(2, 0): R -> 1.6102688
+(2, 1): R -> 1.6120168
+(3, 1): U -> 1.3864335
+(3, 2): U -> 1.0996294
+(3, 3): U -> 0.6927319
+(3, 4): U -> 0.00134666
+(4, 4): L -> 0.0010113465
+(4, 3): L -> 1.0970961
+(4, 2): L -> 1.3836564
+(4, 1): U -> 1.6090848
+(4, 0): U -> 1.6091726
+(3, 0): U -> 1.609052
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5878, -0.3198, -0.0435, -0.2159, -0.0044], requires_grad=True)
+(1, 0): D -> 1.609563
+(0, 0): D -> 1.6094425
+(2, 0): R -> 1.6102407
+(2, 1): R -> 1.6119382
+(3, 1): U -> 1.3864361
+(3, 2): U -> 1.0996175
+(3, 3): U -> 0.6927785
+(3, 4): U -> 0.0012838733
+(4, 4): L -> 0.0009639139
+(4, 3): L -> 1.0971568
+(4, 2): L -> 1.3837676
+(4, 1): U -> 1.6091083
+(4, 0): U -> 1.6091908
+(3, 0): U -> 1.6090779
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5877, -0.3194, -0.0438, -0.2161, -0.0044], requires_grad=True)
+(1, 0): D -> 1.6095592
+(0, 0): D -> 1.6094402
+(2, 0): R -> 1.6102475
+(2, 1): R -> 1.6119405
+(3, 1): U -> 1.3864464
+(3, 2): U -> 1.0996222
+(3, 3): U -> 0.69278127
+(3, 4): U -> 0.0012808894
+(4, 4): L -> 0.00096176605
+(4, 3): L -> 1.0971587
+(4, 2): L -> 1.3837656
+(4, 1): U -> 1.6091038
+(4, 0): U -> 1.6091855
+(3, 0): U -> 1.6090825
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5886, -0.3182, -0.0442, -0.2180, -0.0045], requires_grad=True)
+(1, 0): D -> 1.6095538
+(0, 0): D -> 1.6094334
+(2, 0): R -> 1.6102283
+(2, 1): R -> 1.6118954
+(3, 1): U -> 1.3864452
+(3, 2): U -> 1.0996188
+(3, 3): U -> 0.69281584
+(3, 4): U -> 0.0012461556
+(4, 4): L -> 0.00093557476
+(4, 3): L -> 1.0971936
+(4, 2): L -> 1.3838328
+(4, 1): U -> 1.609122
+(4, 0): U -> 1.609203
+(3, 0): U -> 1.6090916
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5899, -0.3183, -0.0445, -0.2190, -0.0045], requires_grad=True)
+(1, 0): D -> 1.6095585
+(0, 0): D -> 1.6094447
+(2, 0): R -> 1.6102208
+(2, 1): R -> 1.6118611
+(3, 1): U -> 1.3864502
+(3, 2): U -> 1.0996064
+(3, 3): U -> 0.6928244
+(3, 4): U -> 0.0012185246
+(4, 4): L -> 0.00091475353
+(4, 3): L -> 1.097222
+(4, 2): L -> 1.383875
+(4, 1): U -> 1.6091236
+(4, 0): U -> 1.6092007
+(3, 0): U -> 1.6091024
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5911, -0.3179, -0.0447, -0.2206, -0.0045], requires_grad=True)
+(1, 0): D -> 1.6095371
+(0, 0): D -> 1.6094357
+(2, 0): R -> 1.6102071
+(2, 1): R -> 1.6118053
+(3, 1): U -> 1.3864518
+(3, 2): U -> 1.0995932
+(3, 3): U -> 0.6928422
+(3, 4): U -> 0.0011849268
+(4, 4): L -> 0.00088963733
+(4, 3): L -> 1.0972595
+(4, 2): L -> 1.3839433
+(4, 1): U -> 1.6091311
+(4, 0): U -> 1.6092075
+(3, 0): U -> 1.6091084
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5911, -0.3178, -0.0451, -0.2207, -0.0046], requires_grad=True)
+(1, 0): D -> 1.6095417
+(0, 0): D -> 1.6094317
+(2, 0): R -> 1.6102017
+(2, 1): R -> 1.6118069
+(3, 1): U -> 1.3864452
+(3, 2): U -> 1.0995919
+(3, 3): U -> 0.69284385
+(3, 4): U -> 0.0011842108
+(4, 4): L -> 0.0008890407
+(4, 3): L -> 1.0972594
+(4, 2): L -> 1.3839403
+(4, 1): U -> 1.609141
+(4, 0): U -> 1.6092122
+(3, 0): U -> 1.6091055
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5918, -0.3172, -0.0455, -0.2218, -0.0046], requires_grad=True)
+(1, 0): D -> 1.6095371
+(0, 0): D -> 1.6094371
+(2, 0): R -> 1.6101903
+(2, 1): R -> 1.6117809
+(3, 1): U -> 1.386458
+(3, 2): U -> 1.0995985
+(3, 3): U -> 0.69286066
+(3, 4): U -> 0.001163265
+(4, 4): L -> 0.0008732912
+(4, 3): L -> 1.0972762
+(4, 2): L -> 1.3839695
+(4, 1): U -> 1.6091425
+(4, 0): U -> 1.6092259
+(3, 0): U -> 1.6091237
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5914, -0.3158, -0.0456, -0.2229, -0.0047], requires_grad=True)
+(1, 0): D -> 1.6095318
+(0, 0): D -> 1.6094295
+(2, 0): R -> 1.6101903
+(2, 1): R -> 1.6117809
+(3, 1): U -> 1.3864566
+(3, 2): U -> 1.0996021
+(3, 3): U -> 0.6928764
+(3, 4): U -> 0.0011544928
+(4, 4): L -> 0.0008666097
+(4, 3): L -> 1.0972849
+(4, 2): L -> 1.3839841
+(4, 1): U -> 1.6091533
+(4, 0): U -> 1.6092274
+(3, 0): U -> 1.6091253
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5918, -0.3148, -0.0459, -0.2242, -0.0047], requires_grad=True)
+(1, 0): D -> 1.6095233
+(0, 0): D -> 1.6094302
+(2, 0): R -> 1.6101834
+(2, 1): R -> 1.6117694
+(3, 1): U -> 1.3864602
+(3, 2): U -> 1.0996102
+(3, 3): U -> 0.69290733
+(3, 4): U -> 0.0011351588
+(4, 4): L -> 0.0008522326
+(4, 3): L -> 1.0973072
+(4, 2): L -> 1.3840212
+(4, 1): U -> 1.6091547
+(4, 0): U -> 1.6092244
+(3, 0): U -> 1.609132
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5901, -0.3132, -0.0459, -0.2244, -0.0047], requires_grad=True)
+(1, 0): D -> 1.6095318
+(0, 0): D -> 1.6094296
+(2, 0): R -> 1.6101949
+(2, 1): R -> 1.6118046
+(3, 1): U -> 1.3864698
+(3, 2): U -> 1.0996337
+(3, 3): U -> 0.69290626
+(3, 4): U -> 0.001152822
+(4, 4): L -> 0.0008654166
+(4, 3): L -> 1.0972948
+(4, 2): L -> 1.3839965
+(4, 1): U -> 1.6091547
+(4, 0): U -> 1.6092191
+(3, 0): U -> 1.6091397
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5889, -0.3117, -0.0461, -0.2245, -0.0047], requires_grad=True)
+(1, 0): D -> 1.6095309
+(0, 0): D -> 1.6094218
+(2, 0): R -> 1.6102062
+(2, 1): R -> 1.6118327
+(3, 1): U -> 1.3864745
+(3, 2): U -> 1.099656
+(3, 3): U -> 0.6929263
+(3, 4): U -> 0.0011655325
+(4, 4): L -> 0.0008748423
+(4, 3): L -> 1.0972791
+(4, 2): L -> 1.383982
+(4, 1): U -> 1.6091502
+(4, 0): U -> 1.6092213
+(3, 0): U -> 1.609132
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5876, -0.3105, -0.0465, -0.2239, -0.0048], requires_grad=True)
+(1, 0): D -> 1.609528
+(0, 0): D -> 1.609425
+(2, 0): R -> 1.6102239
+(2, 1): R -> 1.6118778
+(3, 1): U -> 1.3864787
+(3, 2): U -> 1.0996749
+(3, 3): U -> 0.6929269
+(3, 4): U -> 0.0011870752
+(4, 4): L -> 0.0008911884
+(4, 3): L -> 1.0972649
+(4, 2): L -> 1.3839452
+(4, 1): U -> 1.6091496
+(4, 0): U -> 1.6092137
+(3, 0): U -> 1.6091253
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5843, -0.3102, -0.0466, -0.2207, -0.0048], requires_grad=True)
+(1, 0): D -> 1.6095309
+(0, 0): D -> 1.609418
+(2, 0): R -> 1.6102605
+(2, 1): R -> 1.6119915
+(3, 1): U -> 1.3864778
+(3, 2): U -> 1.0997074
+(3, 3): U -> 0.6928689
+(3, 4): U -> 0.0012655514
+(4, 4): L -> 0.00095025136
+(4, 3): L -> 1.0971714
+(4, 2): L -> 1.3837988
+(4, 1): U -> 1.6091243
+(4, 0): U -> 1.6092061
+(3, 0): U -> 1.6090963
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5847, -0.3086, -0.0468, -0.2224, -0.0048], requires_grad=True)
+(1, 0): D -> 1.609528
+(0, 0): D -> 1.6094242
+(2, 0): R -> 1.6102551
+(2, 1): R -> 1.6119688
+(3, 1): U -> 1.3864887
+(3, 2): U -> 1.0997183
+(3, 3): U -> 0.6929089
+(3, 4): U -> 0.0012405458
+(4, 4): L -> 0.00093127927
+(4, 3): L -> 1.0972027
+(4, 2): L -> 1.3838563
+(4, 1): U -> 1.6091342
+(4, 0): U -> 1.6092144
+(3, 0): U -> 1.6091107
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5849, -0.3078, -0.0471, -0.2232, -0.0049], requires_grad=True)
+(1, 0): D -> 1.6095172
+(0, 0): D -> 1.609418
+(2, 0): R -> 1.610252
+(2, 1): R -> 1.6119657
+(3, 1): U -> 1.3864936
+(3, 2): U -> 1.0997264
+(3, 3): U -> 0.6929177
+(3, 4): U -> 0.0012286698
+(4, 4): L -> 0.0009223899
+(4, 3): L -> 1.0972135
+(4, 2): L -> 1.3838718
+(4, 1): U -> 1.6091411
+(4, 0): U -> 1.6092106
+(3, 0): U -> 1.6091176
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5850, -0.3075, -0.0475, -0.2232, -0.0049], requires_grad=True)
+(1, 0): D -> 1.6095234
+(0, 0): D -> 1.6094227
+(2, 0): R -> 1.6102475
+(2, 1): R -> 1.611952
+(3, 1): U -> 1.3864888
+(3, 2): U -> 1.0997161
+(3, 3): U -> 0.6929152
+(3, 4): U -> 0.0012271182
+(4, 4): L -> 0.0009211967
+(4, 3): L -> 1.0972133
+(4, 2): L -> 1.3838745
+(4, 1): U -> 1.6091449
+(4, 0): U -> 1.6092137
+(3, 0): U -> 1.6091185
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5856, -0.3065, -0.0478, -0.2244, -0.0049], requires_grad=True)
+(1, 0): D -> 1.6095202
+(0, 0): D -> 1.6094242
+(2, 0): R -> 1.6102399
+(2, 1): R -> 1.6119351
+(3, 1): U -> 1.386494
+(3, 2): U -> 1.0997199
+(3, 3): U -> 0.6929356
+(3, 4): U -> 0.0012048585
+(4, 4): L -> 0.00090449216
+(4, 3): L -> 1.0972375
+(4, 2): L -> 1.3839093
+(4, 1): U -> 1.6091509
+(4, 0): U -> 1.6092236
+(3, 0): U -> 1.6091245
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5881, -0.3062, -0.0484, -0.2265, -0.0050], requires_grad=True)
+(1, 0): D -> 1.6095096
+(0, 0): D -> 1.6094242
+(2, 0): R -> 1.6102147
+(2, 1): R -> 1.6118511
+(3, 1): U -> 1.3864946
+(3, 2): U -> 1.0996958
+(3, 3): U -> 0.69297075
+(3, 4): U -> 0.0011523446
+(4, 4): L -> 0.00086482003
+(4, 3): L -> 1.0972948
+(4, 2): L -> 1.3840107
+(4, 1): U -> 1.60917
+(4, 0): U -> 1.6092167
+(3, 0): U -> 1.6091449
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5877, -0.3052, -0.0487, -0.2267, -0.0051], requires_grad=True)
+(1, 0): D -> 1.609505
+(0, 0): D -> 1.6094089
+(2, 0): R -> 1.6102216
+(2, 1): R -> 1.6118648
+(3, 1): U -> 1.3864938
+(3, 2): U -> 1.0997026
+(3, 3): U -> 0.6929734
+(3, 4): U -> 0.0011541349
+(4, 4): L -> 0.00086625176
+(4, 3): L -> 1.0972925
+(4, 2): L -> 1.3840013
+(4, 1): U -> 1.6091684
+(4, 0): U -> 1.609222
+(3, 0): U -> 1.6091352
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5873, -0.3036, -0.0488, -0.2278, -0.0051], requires_grad=True)
+(1, 0): D -> 1.6094935
+(0, 0): D -> 1.6094052
+(2, 0): R -> 1.61023
+(2, 1): R -> 1.6118764
+(3, 1): U -> 1.3865199
+(3, 2): U -> 1.099733
+(3, 3): U -> 0.692999
+(3, 4): U -> 0.001146258
+(4, 4): L -> 0.0008604651
+(4, 3): L -> 1.0972912
+(4, 2): L -> 1.3840094
+(4, 1): U -> 1.6091684
+(4, 0): U -> 1.6092305
+(3, 0): U -> 1.6091496
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5875, -0.3016, -0.0490, -0.2300, -0.0051], requires_grad=True)
+(1, 0): D -> 1.609489
+(0, 0): D -> 1.6094021
+(2, 0): R -> 1.6102133
+(2, 1): R -> 1.6118443
+(3, 1): U -> 1.3865192
+(3, 2): U -> 1.099741
+(3, 3): U -> 0.69304204
+(3, 4): U -> 0.0011188685
+(4, 4): L -> 0.00083970506
+(4, 3): L -> 1.0973297
+(4, 2): L -> 1.384081
+(4, 1): U -> 1.6091868
+(4, 0): U -> 1.6092397
+(3, 0): U -> 1.6091633
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5898, -0.3004, -0.0493, -0.2333, -0.0051], requires_grad=True)
+(1, 0): D -> 1.6094729
+(0, 0): D -> 1.6093998
+(2, 0): R -> 1.6101826
+(2, 1): R -> 1.6117687
+(3, 1): U -> 1.3865162
+(3, 2): U -> 1.0997208
+(3, 3): U -> 0.6930691
+(3, 4): U -> 0.0010589602
+(4, 4): L -> 0.0007947861
+(4, 3): L -> 1.0973758
+(4, 2): L -> 1.3841724
+(4, 1): U -> 1.6091989
+(4, 0): U -> 1.6092503
+(3, 0): U -> 1.6091785
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5909, -0.2992, -0.0494, -0.2351, -0.0052], requires_grad=True)
+(1, 0): D -> 1.6094699
+(0, 0): D -> 1.6093974
+(2, 0): R -> 1.6101727
+(2, 1): R -> 1.6117297
+(3, 1): U -> 1.3865258
+(3, 2): U -> 1.0997195
+(3, 3): U -> 0.6930994
+(3, 4): U -> 0.0010284703
+(4, 4): L -> 0.0007718203
+(4, 3): L -> 1.0974163
+(4, 2): L -> 1.3842306
+(4, 1): U -> 1.6092095
+(4, 0): U -> 1.609251
+(3, 0): U -> 1.6091931
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5907, -0.2980, -0.0496, -0.2358, -0.0052], requires_grad=True)
+(1, 0): D -> 1.6094637
+(0, 0): D -> 1.6093906
+(2, 0): R -> 1.610172
+(2, 1): R -> 1.611729
+(3, 1): U -> 1.3865255
+(3, 2): U -> 1.0997249
+(3, 3): U -> 0.6931126
+(3, 4): U -> 0.0010228618
+(4, 4): L -> 0.0007676448
+(4, 3): L -> 1.0974178
+(4, 2): L -> 1.3842369
+(4, 1): U -> 1.6092194
+(4, 0): U -> 1.6092671
+(3, 0): U -> 1.609187
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5922, -0.2966, -0.0497, -0.2386, -0.0052], requires_grad=True)
+(1, 0): D -> 1.6094539
+(0, 0): D -> 1.6093845
+(2, 0): R -> 1.6101613
+(2, 1): R -> 1.6116763
+(3, 1): U -> 1.3865361
+(3, 2): U -> 1.0997217
+(3, 3): U -> 0.6931442
+(3, 4): U -> 0.0009806195
+(4, 4): L -> 0.0007358516
+(4, 3): L -> 1.0974591
+(4, 2): L -> 1.3843151
+(4, 1): U -> 1.6092316
+(4, 0): U -> 1.6092625
+(3, 0): U -> 1.609203
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5932, -0.2956, -0.0501, -0.2402, -0.0052], requires_grad=True)
+(1, 0): D -> 1.609447
+(0, 0): D -> 1.6093799
+(2, 0): R -> 1.6101544
+(2, 1): R -> 1.6116489
+(3, 1): U -> 1.3865441
+(3, 2): U -> 1.0997249
+(3, 3): U -> 0.69317853
+(3, 4): U -> 0.0009551436
+(4, 4): L -> 0.00071676425
+(4, 3): L -> 1.0974956
+(4, 2): L -> 1.384366
+(4, 1): U -> 1.6092354
+(4, 0): U -> 1.6092716
+(3, 0): U -> 1.6092129
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5925, -0.2932, -0.0501, -0.2419, -0.0052], requires_grad=True)
+(1, 0): D -> 1.609438
+(0, 0): D -> 1.6093829
+(2, 0): R -> 1.6101581
+(2, 1): R -> 1.6116481
+(3, 1): U -> 1.3865607
+(3, 2): U -> 1.099745
+(3, 3): U -> 0.69320774
+(3, 4): U -> 0.00094643305
+(4, 4): L -> 0.0007101434
+(4, 3): L -> 1.0975016
+(4, 2): L -> 1.3843853
+(4, 1): U -> 1.6092498
+(4, 0): U -> 1.609283
+(3, 0): U -> 1.6092281
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5914, -0.2911, -0.0502, -0.2429, -0.0053], requires_grad=True)
+(1, 0): D -> 1.6094227
+(0, 0): D -> 1.6093715
+(2, 0): R -> 1.6101643
+(2, 1): R -> 1.6116824
+(3, 1): U -> 1.3865778
+(3, 2): U -> 1.0997884
+(3, 3): U -> 0.6932365
+(3, 4): U -> 0.00094691035
+(4, 4): L -> 0.0007106206
+(4, 3): L -> 1.0974993
+(4, 2): L -> 1.3843815
+(4, 1): U -> 1.6092522
+(4, 0): U -> 1.6092892
+(3, 0): U -> 1.6092397
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5895, -0.2893, -0.0503, -0.2431, -0.0053], requires_grad=True)
+(1, 0): D -> 1.6094241
+(0, 0): D -> 1.6093693
+(2, 0): R -> 1.6101757
+(2, 1): R -> 1.6117258
+(3, 1): U -> 1.3865778
+(3, 2): U -> 1.0998139
+(3, 3): U -> 0.6932442
+(3, 4): U -> 0.00096260133
+(4, 4): L -> 0.0007223711
+(4, 3): L -> 1.0974791
+(4, 2): L -> 1.3843598
+(4, 1): U -> 1.6092538
+(4, 0): U -> 1.609287
+(3, 0): U -> 1.6092305
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5890, -0.2870, -0.0505, -0.2450, -0.0053], requires_grad=True)
+(1, 0): D -> 1.6094135
+(0, 0): D -> 1.60936
+(2, 0): R -> 1.6101742
+(2, 1): R -> 1.6117299
+(3, 1): U -> 1.3865905
+(3, 2): U -> 1.0998386
+(3, 3): U -> 0.69328344
+(3, 4): U -> 0.00095013203
+(4, 4): L -> 0.00071282755
+(4, 3): L -> 1.0974946
+(4, 2): L -> 1.3843827
+(4, 1): U -> 1.6092644
+(4, 0): U -> 1.6092899
+(3, 0): U -> 1.6092435
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5895, -0.2862, -0.0508, -0.2462, -0.0053], requires_grad=True)
+(1, 0): D -> 1.6094005
+(0, 0): D -> 1.6093608
+(2, 0): R -> 1.6101696
+(2, 1): R -> 1.6116991
+(3, 1): U -> 1.386598
+(3, 2): U -> 1.099832
+(3, 3): U -> 0.69329643
+(3, 4): U -> 0.0009341429
+(4, 4): L -> 0.00070071925
+(4, 3): L -> 1.0975199
+(4, 2): L -> 1.3844123
+(4, 1): U -> 1.609269
+(4, 0): U -> 1.6092967
+(3, 0): U -> 1.6092534
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5880, -0.2839, -0.0509, -0.2473, -0.0053], requires_grad=True)
+(1, 0): D -> 1.6093951
+(0, 0): D -> 1.6093525
+(2, 0): R -> 1.610187
+(2, 1): R -> 1.6117473
+(3, 1): U -> 1.3866116
+(3, 2): U -> 1.0998745
+(3, 3): U -> 0.69332427
+(3, 4): U -> 0.0009373646
+(4, 4): L -> 0.0007032244
+(4, 3): L -> 1.0975103
+(4, 2): L -> 1.384403
+(4, 1): U -> 1.6092666
+(4, 0): U -> 1.6093006
+(3, 0): U -> 1.6092517
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5866, -0.2824, -0.0510, -0.2472, -0.0054], requires_grad=True)
+(1, 0): D -> 1.6093953
+(0, 0): D -> 1.6093509
+(2, 0): R -> 1.6101948
+(2, 1): R -> 1.6117809
+(3, 1): U -> 1.3866191
+(3, 2): U -> 1.0999037
+(3, 3): U -> 0.6933467
+(3, 4): U -> 0.0009513253
+(4, 4): L -> 0.00071354327
+(4, 3): L -> 1.0974998
+(4, 2): L -> 1.3843846
+(4, 1): U -> 1.6092796
+(4, 0): U -> 1.6093022
+(3, 0): U -> 1.6092517
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5864, -0.2801, -0.0511, -0.2492, -0.0054], requires_grad=True)
+(1, 0): D -> 1.6093915
+(0, 0): D -> 1.6093448
+(2, 0): R -> 1.6101964
+(2, 1): R -> 1.611774
+(3, 1): U -> 1.3866324
+(3, 2): U -> 1.09992
+(3, 3): U -> 0.6933729
+(3, 4): U -> 0.0009346202
+(4, 4): L -> 0.0007013157
+(4, 3): L -> 1.097515
+(4, 2): L -> 1.3844161
+(4, 1): U -> 1.6092873
+(4, 0): U -> 1.6093044
+(3, 0): U -> 1.6092709
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5892, -0.2809, -0.0518, -0.2503, -0.0055], requires_grad=True)
+(1, 0): D -> 1.6093882
+(0, 0): D -> 1.6093547
+(2, 0): R -> 1.6101643
+(2, 1): R -> 1.6117022
+(3, 1): U -> 1.3866138
+(3, 2): U -> 1.0998744
+(3, 3): U -> 0.6933612
+(3, 4): U -> 0.0008988843
+(4, 4): L -> 0.00067423657
+(4, 3): L -> 1.0975522
+(4, 2): L -> 1.384473
+(4, 1): U -> 1.6092881
+(4, 0): U -> 1.609312
+(3, 0): U -> 1.6092725
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5892, -0.2792, -0.0521, -0.2517, -0.0055], requires_grad=True)
+(1, 0): D -> 1.6093776
+(0, 0): D -> 1.6093426
+(2, 0): R -> 1.6101582
+(2, 1): R -> 1.6116999
+(3, 1): U -> 1.3866227
+(3, 2): U -> 1.099898
+(3, 3): U -> 0.69339496
+(3, 4): U -> 0.0008873703
+(4, 4): L -> 0.00066558813
+(4, 3): L -> 1.0975655
+(4, 2): L -> 1.3845065
+(4, 1): U -> 1.6092925
+(4, 0): U -> 1.6093181
+(3, 0): U -> 1.6092831
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5889, -0.2765, -0.0522, -0.2540, -0.0055], requires_grad=True)
+(1, 0): D -> 1.6093616
+(0, 0): D -> 1.6093364
+(2, 0): R -> 1.6101688
+(2, 1): R -> 1.6117029
+(3, 1): U -> 1.3866454
+(3, 2): U -> 1.0999217
+(3, 3): U -> 0.6934248
+(3, 4): U -> 0.00086971186
+(4, 4): L -> 0.00065234717
+(4, 3): L -> 1.0975803
+(4, 2): L -> 1.3845235
+(4, 1): U -> 1.609301
+(4, 0): U -> 1.609322
+(3, 0): U -> 1.6092907
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5876, -0.2745, -0.0523, -0.2544, -0.0055], requires_grad=True)
+(1, 0): D -> 1.6093655
+(0, 0): D -> 1.6093334
+(2, 0): R -> 1.6101742
+(2, 1): R -> 1.611732
+(3, 1): U -> 1.3866527
+(3, 2): U -> 1.0999521
+(3, 3): U -> 0.6934578
+(3, 4): U -> 0.00087699
+(4, 4): L -> 0.0006577151
+(4, 3): L -> 1.0975815
+(4, 2): L -> 1.3845267
+(4, 1): U -> 1.6093155
+(4, 0): U -> 1.6093204
+(3, 0): U -> 1.6093014
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5850, -0.2721, -0.0524, -0.2538, -0.0055], requires_grad=True)
+(1, 0): D -> 1.6093526
+(0, 0): D -> 1.6093265
+(2, 0): R -> 1.6102132
+(2, 1): R -> 1.6118207
+(3, 1): U -> 1.3866782
+(3, 2): U -> 1.1000155
+(3, 3): U -> 0.69348186
+(3, 4): U -> 0.0009050888
+(4, 4): L -> 0.00067912746
+(4, 3): L -> 1.0975456
+(4, 2): L -> 1.3844733
+(4, 1): U -> 1.6093086
+(4, 0): U -> 1.6093197
+(3, 0): U -> 1.6092899
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5833, -0.2698, -0.0525, -0.2536, -0.0056], requires_grad=True)
+(1, 0): D -> 1.6093388
+(0, 0): D -> 1.6093357
+(2, 0): R -> 1.6102269
+(2, 1): R -> 1.6118755
+(3, 1): U -> 1.3866947
+(3, 2): U -> 1.1000681
+(3, 3): U -> 0.69351345
+(3, 4): U -> 0.00092322513
+(4, 4): L -> 0.0006923688
+(4, 3): L -> 1.0975256
+(4, 2): L -> 1.3844573
+(4, 1): U -> 1.6093155
+(4, 0): U -> 1.6093197
+(3, 0): U -> 1.6092961
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5828, -0.2680, -0.0529, -0.2538, -0.0056], requires_grad=True)
+(1, 0): D -> 1.6093327
+(0, 0): D -> 1.6093242
+(2, 0): R -> 1.6102352
+(2, 1): R -> 1.6118939
+(3, 1): U -> 1.3867025
+(3, 2): U -> 1.1000786
+(3, 3): U -> 0.69352204
+(3, 4): U -> 0.00092561153
+(4, 4): L -> 0.00069415814
+(4, 3): L -> 1.0975311
+(4, 2): L -> 1.3844365
+(4, 1): U -> 1.6093155
+(4, 0): U -> 1.6093258
+(3, 0): U -> 1.6092945
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5841, -0.2665, -0.0530, -0.2557, -0.0056], requires_grad=True)
+(1, 0): D -> 1.609328
+(0, 0): D -> 1.6093174
+(2, 0): R -> 1.610223
+(2, 1): R -> 1.6118519
+(3, 1): U -> 1.3867112
+(3, 2): U -> 1.1000803
+(3, 3): U -> 0.69355696
+(3, 4): U -> 0.0008970349
+(4, 4): L -> 0.0006726858
+(4, 3): L -> 1.0975621
+(4, 2): L -> 1.3844993
+(4, 1): U -> 1.6093345
+(4, 0): U -> 1.6093357
+(3, 0): U -> 1.6093144
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5839, -0.2633, -0.0531, -0.2579, -0.0056], requires_grad=True)
+(1, 0): D -> 1.6093082
+(0, 0): D -> 1.609306
+(2, 0): R -> 1.6102208
+(2, 1): R -> 1.6118717
+(3, 1): U -> 1.3867215
+(3, 2): U -> 1.1001217
+(3, 3): U -> 0.6936038
+(3, 4): U -> 0.00087937625
+(4, 4): L -> 0.0006595044
+(4, 3): L -> 1.0975794
+(4, 2): L -> 1.3845289
+(4, 1): U -> 1.6093414
+(4, 0): U -> 1.6093441
+(3, 0): U -> 1.6093221
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5849, -0.2618, -0.0535, -0.2595, -0.0057], requires_grad=True)
+(1, 0): D -> 1.6093045
+(0, 0): D -> 1.6093022
+(2, 0): R -> 1.61022
+(2, 1): R -> 1.6118435
+(3, 1): U -> 1.3867334
+(3, 2): U -> 1.1001219
+(3, 3): U -> 0.6936277
+(3, 4): U -> 0.0008571244
+(4, 4): L -> 0.0006426849
+(4, 3): L -> 1.0976062
+(4, 2): L -> 1.3845732
+(4, 1): U -> 1.6093452
+(4, 0): U -> 1.6093433
+(3, 0): U -> 1.6093358
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5841, -0.2593, -0.0537, -0.2607, -0.0057], requires_grad=True)
+(1, 0): D -> 1.6092808
+(0, 0): D -> 1.6092854
+(2, 0): R -> 1.6102223
+(2, 1): R -> 1.6118625
+(3, 1): U -> 1.3867427
+(3, 2): U -> 1.1001505
+(3, 3): U -> 0.6936587
+(3, 4): U -> 0.00085330644
+(4, 4): L -> 0.0006398221
+(4, 3): L -> 1.0976055
+(4, 2): L -> 1.3845787
+(4, 1): U -> 1.6093543
+(4, 0): U -> 1.6093448
+(3, 0): U -> 1.609338
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5825, -0.2566, -0.0538, -0.2618, -0.0057], requires_grad=True)
+(1, 0): D -> 1.6092708
+(0, 0): D -> 1.6092755
+(2, 0): R -> 1.6102399
+(2, 1): R -> 1.6119107
+(3, 1): U -> 1.3867658
+(3, 2): U -> 1.1002058
+(3, 3): U -> 0.6937041
+(3, 4): U -> 0.0008571244
+(4, 4): L -> 0.0006426849
+(4, 3): L -> 1.097601
+(4, 2): L -> 1.384577
+(4, 1): U -> 1.6093651
+(4, 0): U -> 1.6093494
+(3, 0): U -> 1.6093495
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5811, -0.2540, -0.0539, -0.2630, -0.0058], requires_grad=True)
+(1, 0): D -> 1.6092579
+(0, 0): D -> 1.6092671
+(2, 0): R -> 1.6102544
+(2, 1): R -> 1.611952
+(3, 1): U -> 1.3867917
+(3, 2): U -> 1.1002645
+(3, 3): U -> 0.6937618
+(3, 4): U -> 0.0008587948
+(4, 4): L -> 0.0006439971
+(4, 3): L -> 1.0976038
+(4, 2): L -> 1.3845809
+(4, 1): U -> 1.6093886
+(4, 0): U -> 1.6093632
+(3, 0): U -> 1.6093549
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5793, -0.2509, -0.0540, -0.2643, -0.0058], requires_grad=True)
+(1, 0): D -> 1.6092381
+(0, 0): D -> 1.609261
+(2, 0): R -> 1.6102704
+(2, 1): R -> 1.6120077
+(3, 1): U -> 1.3868196
+(3, 2): U -> 1.1003292
+(3, 3): U -> 0.6938096
+(3, 4): U -> 0.0008637462
+(4, 4): L -> 0.000647695
+(4, 3): L -> 1.0975996
+(4, 2): L -> 1.3845793
+(4, 1): U -> 1.6093795
+(4, 0): U -> 1.6093601
+(3, 0): U -> 1.6093731
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.    0.333 0.333 0.    0.333]
+Agent is currently at (0,0) on 0
+===================================
+R011000224
+0011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: DOWN
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5778, -0.2474, -0.0542, -0.2660, -0.0058], requires_grad=True)
+(1, 0): D -> 1.609229
+(0, 0): D -> 1.609248
+(2, 0): R -> 1.6102873
+(2, 1): R -> 1.6120626
+(3, 1): U -> 1.3868434
+(3, 2): U -> 1.100395
+(3, 3): U -> 0.69387186
+(3, 4): U -> 0.00086189684
+(4, 4): L -> 0.00064614427
+(4, 3): L -> 1.0976018
+(4, 2): L -> 1.3845887
+(4, 1): U -> 1.609397
+(4, 0): U -> 1.6093601
+(3, 0): U -> 1.6093876
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.25 0.25 0.25 0.   0.25]
+Agent is currently at (1,0) on 0
+===================================
+0011000224
+R011000000
+0000000000
+0033333300
+0000333300
+The agent plans to do action: DOWN
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: s
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5776, -0.2447, -0.0545, -0.2683, -0.0058], requires_grad=True)
+(1, 0): D -> 1.6092167
+(0, 0): D -> 1.6092312
+(2, 0): R -> 1.610291
+(2, 1): R -> 1.6120694
+(3, 1): U -> 1.3868642
+(3, 2): U -> 1.1004353
+(3, 3): U -> 0.6939281
+(3, 4): U -> 0.0008441195
+(4, 4): L -> 0.0006327843
+(4, 3): L -> 1.0976217
+(4, 2): L -> 1.3846248
+(4, 1): U -> 1.6094139
+(4, 0): U -> 1.6093785
+(3, 0): U -> 1.6094013
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.25 0.25 0.25 0.   0.25]
+Agent is currently at (2,0) on 0
+===================================
+0011000224
+0011000000
+R000000000
+0033333300
+0000333300
+The agent plans to do action: DOWN
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: d
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5776, -0.2427, -0.0548, -0.2699, -0.0059], requires_grad=True)
+(1, 0): D -> 1.6092045
+(0, 0): D -> 1.6092297
+(2, 0): R -> 1.6102895
+(2, 1): R -> 1.6120778
+(3, 1): U -> 1.3868748
+(3, 2): U -> 1.1004634
+(3, 3): U -> 0.69396484
+(3, 4): U -> 0.00083027966
+(4, 4): L -> 0.0006224662
+(4, 3): L -> 1.0976372
+(4, 2): L -> 1.3846533
+(4, 1): U -> 1.6094238
+(4, 0): U -> 1.6093837
+(3, 0): U -> 1.6094097
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.25 0.25 0.25 0.   0.25]
+Agent is currently at (3,0) on 0
+===================================
+0011000224
+0011000000
+0000000000
+R033333300
+0000333300
+The agent plans to do action: DOWN
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5760, -0.2386, -0.0549, -0.2721, -0.0059], requires_grad=True)
+(1, 0): D -> 1.609177
+(0, 0): D -> 1.6092205
+(2, 0): R -> 1.6103115
+(2, 1): R -> 1.6121366
+(3, 1): U -> 1.3869156
+(3, 2): U -> 1.1005492
+(3, 3): U -> 0.6940395
+(3, 4): U -> 0.00082604424
+(4, 4): L -> 0.0006192455
+(4, 3): L -> 1.097639
+(4, 2): L -> 1.3846684
+(4, 1): U -> 1.6094382
+(4, 0): U -> 1.6093944
+(3, 0): U -> 1.6094334
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.333 0.333 0.    0.    0.333]
+Agent is currently at (4,0) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+R000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5759, -0.2354, -0.0551, -0.2744, -0.0059], requires_grad=True)
+(1, 0): D -> 1.6091504
+(0, 0): D -> 1.6092014
+(2, 0): R -> 1.6103193
+(2, 1): R -> 1.6121527
+(3, 1): U -> 1.3869412
+(3, 2): U -> 1.1005957
+(3, 3): U -> 0.6940957
+(3, 4): U -> 0.0008074324
+(4, 4): L -> 0.0006054088
+(4, 3): L -> 1.0976589
+(4, 2): L -> 1.3846987
+(4, 1): U -> 1.6094543
+(4, 0): U -> 1.6093967
+(3, 0): U -> 1.6094456
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.333 0.333 0.    0.    0.333]
+Agent is currently at (4,0) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+R000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5734, -0.2317, -0.0552, -0.2752, -0.0059], requires_grad=True)
+(1, 0): D -> 1.6091199
+(0, 0): D -> 1.609178
+(2, 0): R -> 1.6103482
+(2, 1): R -> 1.6122396
+(3, 1): U -> 1.3869773
+(3, 2): U -> 1.1006911
+(3, 3): U -> 0.6941737
+(3, 4): U -> 0.0008221071
+(4, 4): L -> 0.00061614416
+(4, 3): L -> 1.097651
+(4, 2): L -> 1.3846872
+(4, 1): U -> 1.6094611
+(4, 0): U -> 1.609406
+(3, 0): U -> 1.6094562
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.333 0.333 0.    0.    0.333]
+Agent is currently at (4,0) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+R000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5700, -0.2278, -0.0553, -0.2759, -0.0059], requires_grad=True)
+(1, 0): D -> 1.6090977
+(0, 0): D -> 1.6091611
+(2, 0): R -> 1.6103978
+(2, 1): R -> 1.6123741
+(3, 1): U -> 1.387033
+(3, 2): U -> 1.1008234
+(3, 3): U -> 0.69426954
+(3, 4): U -> 0.0008436423
+(4, 4): L -> 0.0006324264
+(4, 3): L -> 1.0976267
+(4, 2): L -> 1.3846523
+(4, 1): U -> 1.6094817
+(4, 0): U -> 1.6094089
+(3, 0): U -> 1.6094745
+Original Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.2 0.2 0.2 0.2 0.2]
+Action Probabilities (Up, Right, Down, Left, Stay): 
+[0.333 0.333 0.    0.    0.333]
+Agent is currently at (4,0) on 0
+===================================
+0011000224
+0011000000
+0000000000
+0033333300
+R000333300
+The agent plans to do action: STAY
+Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)
+Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2
+Human Feedback: w
+Action Feedback Provided
+LEARNING!***************
+Updated reward: tensor([ 0.5663, -0.2232, -0.0554, -0.2769, -0.0060], requires_grad=True)
+(1, 0): D -> 1.6090566
+(0, 0): D -> 1.6091253
+(2, 0): R -> 1.6104405
+(2, 1): R -> 1.6125284
+(3, 1): U -> 1.3870784
+(3, 2): U -> 1.1009724
+(3, 3): U -> 0.6943889
+(3, 4): U -> 0.00086684834
+(4, 4): L -> 0.00064960355
+(4, 3): L -> 1.0976177
+(4, 2): L -> 1.3846176
+(4, 1): U -> 1.6095053
+(4, 0): U -> 1.6094288
+(3, 0): U -> 1.6094816
+Agent unable to learn after {steps} steps, going to next trial.
+tensor([ 0.5663, -0.2232, -0.0554, -0.2769, -0.0060], requires_grad=True)
+Plotting Policy:
+Exceeded iterations
+0011000224
+0011000000
+0000000000
+0033333300
+x<<<333300

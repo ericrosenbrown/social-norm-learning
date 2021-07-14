@@ -17,6 +17,20 @@ import torch.nn as nn
 
 
 class ComputationGraph:
+    class lossdict(dict):
+        def __init__(self, *args, **kw):
+            super().__init__(*args, **kw)
+
+        def set_decode(self, mapping):
+            self.action_mapping = mapping
+
+        def __str__(self):
+            parts = []
+            for k, v in self.items():
+                parts.append('{0}: {1} -> {2}'.format(k[0], self.action_mapping[k[1]], str(v[-1])))
+
+            return '\n'.join(parts)
+
     def __init__(self, env):
         """
         Initialize the computation graph
@@ -54,6 +68,10 @@ class ComputationGraph:
         # initialize  r to 0 everywhere
         r = np.zeros(env.ncategories)
         self.rk = torch.tensor(r, dtype=self.dtype, requires_grad=True)
+
+        ## Losses are recorded state by state for actions
+        self.recorded_losses = ComputationGraph.lossdict()
+        self.recorded_losses.set_decode({0: 'U', 1: 'R', 2: 'D', 3: 'L', 4: 'S'})
 
     def set_reward_estimate(self, r):
         self.rk = torch.tensor(r, dtype=self.dtype, requires_grad=True)
@@ -94,6 +112,26 @@ class ComputationGraph:
             next_Q = (Q * pi).sum(dim=1)
             v = rffk + self.gamma * next_Q
         return pi, Q
+
+    def compute_expert_loss(self, pi, trajacts, trajcoords):
+        nrows, ncols = self.env.world.shape
+        loss = 0
+
+        ## Update the losses for all the demonstrations that have been seen so far
+        for sa in self.recorded_losses:
+            state, acti = sa
+            example_loss = -torch.log(pi[state[0]*ncols+state[1]][acti])
+            self.recorded_losses[sa].append(example_loss.cpu().detach().numpy())
+
+        ## Update the new loss if applicable
+        for i in range(len(trajacts)):
+            acti = trajacts[i]
+            state = trajcoords[i]
+            loss += -torch.log(pi[state[0]*ncols+state[1]][acti])
+
+            if (state, acti) not in self.recorded_losses:
+                self.recorded_losses[(state,acti)] = [loss.cpu().detach().numpy()]
+        return loss
 
     def action_loss(self, pi, Q, trajacts, trajcoords):
         nrows, ncols = self.env.world.shape
@@ -352,7 +390,10 @@ def train(episodes, cg):
                 trajacts = [tr.feedback_value for tr in batch_transitions]
                 trajcoords = [tr.state for tr in batch_transitions]
                 pi, Q, loss, rk = cg.action_update(trajacts, trajcoords)
+                cg.compute_expert_loss(pi, [feedback], [(r,c)])
                 print(f"Updated reward: {rk}")
+
+            print(cg.recorded_losses)
 
             ## Perform actual transition
             r,c = cg.env.step(r,c, action)
