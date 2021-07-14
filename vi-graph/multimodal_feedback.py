@@ -1,4 +1,5 @@
 import random
+from itertools import accumulate
 import copy
 import pickle
 import datetime
@@ -226,6 +227,50 @@ class ComputationGraph:
 
 Transition = namedtuple("Transition", "t reward_estimate state action policy feedback_type feedback_value")
 
+class TrialBuffer:
+    def __init__(self):
+        self.all_trials = []
+        self.feedback_statistics = {}
+
+    def register_trial(self, trial):
+        self.all_trials.append(trial)
+        for k,v in trial.feedback_indices.items():
+            if k not in self.feedback_statistics:
+                self.feedback_statistics[k] = []
+
+    def update_statistics(self):
+        trial = self.all_trials[-1]
+        for feedback_type, indices in trial.feedback_indices.items():
+            self.feedback_statistics[feedback_type].append(len(indices))
+
+    def sample_feedback_type(self, feedback_type, batch_size):
+        ## How many samples are in our buffer?
+        total_current = len(self.all_trials[-1].feedback_indices[feedback_type])
+        total_feedback = [x for x in self.feedback_statistics[feedback_type]]
+        total_feedback.append(total_current)
+        total = sum(total_feedback)
+        selection = None
+        if batch_size < total:
+            selection = random.sample(range(total), batch_size)
+        else:
+            selection = [x for x in range(total)]
+
+        ## Sort in the indices for iteration
+        selection.sort()
+        transitions = [None for x in range(len(selection))]
+        trial_idx = 0
+        selection_idx = 0
+        prev_accum = 0
+        for x in accumulate(total_feedback):
+            while selection_idx < len(selection) and selection[selection_idx] < x:
+                idx = selection[selection_idx] - prev_accum
+                data_idx = self.all_trials[trial_idx].feedback_indices[feedback_type][idx]
+                transitions[selection_idx] = self.all_trials[trial_idx].transitions[data_idx]
+                selection_idx += 1
+            prev_accum = x
+            trial_idx += 1
+        return transitions
+
 class Trial:
     def __init__(self, initial_state, goal, reward_estimate, grid_map):
         self.initial_state = initial_state
@@ -233,9 +278,16 @@ class Trial:
         self.reward_estimate = reward_estimate
         self.grid_map = grid_map
         self.transitions = []
+        self.feedback_indices = dict()
+
+    def register_feedback_type(self, feedback_type):
+        self.feedback_indices[feedback_type] = []
 
     def add_transition(self, t, r, s, a, p, ft, fv):
         self.transitions.append(Transition(t, r, s, a, p, ft, fv))
+        if ft in self.feedback_indices:
+            idx = len(self.transitions) - 1
+            self.feedback_indices[ft].append(idx)
 
 def train(episodes, cg):
     """
@@ -244,13 +296,18 @@ def train(episodes, cg):
     tensor_time = []
     pi, Q, loss, rk = None, None, None, None
     max_steps = 100
-    all_trial_data = []
+    trial_buffer = TrialBuffer()
     for ep in range(episodes):
         ## Initialize episode:
         ## Choose a random start state
         r, c = cg.env.random_start_state()
         g = cg.env.get_goal_state()
+
         trial_data = Trial((r,c), g, cg.current_reward_estimate(), cg.env.get_world())
+        trial_data.register_feedback_type(cg.env.SCALAR_FEEDBACK)
+        trial_data.register_feedback_type(cg.env.ACTION_FEEDBACK)
+        trial_buffer.register_trial(trial_data)
+
         steps = 0
         while cg.env.world[r,c] != g and steps < max_steps:
             ## Agent Plans an action given the current state, based on current policy
@@ -279,10 +336,6 @@ def train(episodes, cg):
                 trajacts, trajcoords = cg.env.feedback_to_demonstration(feedback_str, r, c)
                 feedback = trajacts[0]
                 # trajacts, trajcoords = cg.env.acquire_human_demonstration(max_length=1)
-                ## Update the reward function based on the trajectory
-                pi, Q, loss, rk = cg.action_update(trajacts, trajcoords)
-                print(f"Updated reward: {rk}")
-
             else:
                 print("Invalid feedback provided. Ignoring.")
 
@@ -291,13 +344,23 @@ def train(episodes, cg):
                 (r,c), action, local_policy, feedback_type, feedback
             )
 
+            if feedback_type == cg.env.ACTION_FEEDBACK:
+                ## Update the reward function based on a batch of expert transitions from
+                ## the feedback buffer
+                batch_transitions = trial_buffer.sample_feedback_type(cg.env.ACTION_FEEDBACK, 15)
+                ## Convert transitions to trajacts, trajcoords
+                trajacts = [tr.feedback_value for tr in batch_transitions]
+                trajcoords = [tr.state for tr in batch_transitions]
+                pi, Q, loss, rk = cg.action_update(trajacts, trajcoords)
+                print(f"Updated reward: {rk}")
+
             ## Perform actual transition
             r,c = cg.env.step(r,c, action)
             steps += 1
 
         if steps == max_steps:
             print("Agent unable to learn after {steps} steps, going to next trial.")
-        all_trial_data.append(trial_data)
+        trial_buffer.update_statistics()
 
         tensor_time.append(copy.deepcopy(rk))
         if ep % 1 == 0:
@@ -311,9 +374,9 @@ def train(episodes, cg):
     ## Note that the reward function is the reward AFTER feedback is obtained
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     with open(f"exp_{ts}.pkl","wb") as f:
-        pickle.dump(all_trial_data, f)
+        pickle.dump(trial_buffer.all_trials, f)
 
-    return all_trial_data
+    return trial_buffer.all_trials
 
 def compute_violations(data, cg):
     """
@@ -473,4 +536,4 @@ if __name__ == '__main__':
 
     plt.rcParams.update({'font.size': 20})
     all_violations = compute_violations(all_training_data, cg)
-    plot_violations(all_violations, args.dataset, show=False)
+    plot_violations(all_violations, args.dataset, show=True)
