@@ -86,7 +86,15 @@ class Environment:
         A simulator for providing feedback
         """
         ## TODO: Implement a feedback simulator to simulate giving feedback
-        return None
+        ## NOTE: For now, we've implemented optimal feedback for each grid location
+        feedback_map = (
+            ("s","s","a","d","s","s","s","s","d","stay"),
+            ("s","s","s","d","d","d","d","d","d","w"),
+            ("d","d","d","d","d","d","d","d","d","w"),
+            ("w","w","w","w","w","w","w","d","d","w"),
+            ("w","w","a","a","a","w","w","d","d","w")
+        )
+        return feedback_map[r][c]
 
     def random_start_state(self):
         """

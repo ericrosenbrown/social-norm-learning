@@ -302,7 +302,14 @@ class TrialBuffer:
         for x in accumulate(total_feedback):
             while selection_idx < len(selection) and selection[selection_idx] < x:
                 idx = selection[selection_idx] - prev_accum
-                data_idx = self.all_trials[trial_idx].feedback_indices[feedback_type][idx]
+                try:
+                    data_idx = self.all_trials[trial_idx].feedback_indices[feedback_type][idx]
+                except IndexError:
+                    print(f'Selection: {selection}')
+                    print(f'x: {x}, selection[selection_idx]={selection[selection_idx]}')
+                    print(f'prev_accum: {prev_accum}, idx={idx}')
+                    print(f'trial_idx: {trial_idx}')
+                    print(f'total_feedback: {total_feedback}')
                 transitions[selection_idx] = self.all_trials[trial_idx].transitions[data_idx]
                 selection_idx += 1
             prev_accum = x
@@ -327,7 +334,11 @@ class Trial:
             idx = len(self.transitions) - 1
             self.feedback_indices[ft].append(idx)
 
-def train(episodes, cg):
+    def update_last_transition_reward(self, r):
+        last_transition = self.transitions[-1]
+        self.transitions[-1] = Transition(*((last_transition[0], r) + last_transition[2:]))
+
+def train(episodes, cg, prepop_trial_data=None):
     """
     Train the agent's estimate of the reward function
     """
@@ -335,6 +346,11 @@ def train(episodes, cg):
     pi, Q, loss, rk = None, None, None, None
     max_steps = 100
     trial_buffer = TrialBuffer()
+    ## Prepopulate the TrialBuffer with feedback examples
+    if prepop_trial_data is not None:
+        trial_buffer.register_trial(prepop_trial_data)
+        trial_buffer.update_statistics()
+        
     for ep in range(episodes):
         ## Initialize episode:
         ## Choose a random start state
@@ -385,11 +401,15 @@ def train(episodes, cg):
             if feedback_type == cg.env.ACTION_FEEDBACK:
                 ## Update the reward function based on a batch of expert transitions from
                 ## the feedback buffer
-                batch_transitions = trial_buffer.sample_feedback_type(cg.env.ACTION_FEEDBACK, 15)
+                batch_transitions = trial_buffer.sample_feedback_type(cg.env.ACTION_FEEDBACK, 100)
                 ## Convert transitions to trajacts, trajcoords
                 trajacts = [tr.feedback_value for tr in batch_transitions]
                 trajcoords = [tr.state for tr in batch_transitions]
                 pi, Q, loss, rk = cg.action_update(trajacts, trajcoords)
+
+                ## Because the reward in the transition should be from AFTER feedback
+                trial_data.update_last_transition_reward(cg.current_reward_estimate())
+
                 cg.compute_expert_loss(pi, [feedback], [(r,c)])
                 print(f"Updated reward: {rk}")
 
@@ -400,7 +420,7 @@ def train(episodes, cg):
             steps += 1
 
         if steps == max_steps:
-            print("Agent unable to learn after {steps} steps, going to next trial.")
+            print(f"Agent unable to learn after {steps} steps, going to next trial.")
         trial_buffer.update_statistics()
 
         tensor_time.append(copy.deepcopy(rk))
@@ -416,8 +436,9 @@ def train(episodes, cg):
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     with open(f"exp_{ts}.pkl","wb") as f:
         pickle.dump(trial_buffer.all_trials, f)
+        pickle.dump(cg.recorded_losses, f)
 
-    return trial_buffer.all_trials
+    return trial_buffer.all_trials, cg.recorded_losses
 
 def compute_violations(data, cg):
     """
@@ -536,30 +557,142 @@ def plot_violations(violations_list, save_prefix, show=True):
         plt.savefig(save_prefix+".per_step.pdf", bbox_inches='tight')
         plt.close()
 
+def compute_demonstration_losses(data, cg, demonstration_losses):
+    ## Recompute the demonstration losses from scratch for now (otherwise, could
+    ## just backfill based on the length, but that seems a little complicated.
+    nrows, ncols = cg.env.world.shape
+    acts = cg.env.actions
+    grid_map = cg.env.world
+
+    def update_losses(pi, demo):
+        for k in demo:
+            state, acti = k
+            loss = -torch.log(pi[state[0]*ncols+state[1]][acti])
+            demo[k].append(loss.cpu().detach().numpy())
+        return demo
+    
+    demo_losses = {k: [] for k in demonstration_losses}
+    for trial in data:
+        r = trial.reward_estimate
+        print(f'Reward Estimate: {r}')
+        cg.env.world = trial.grid_map
+        cg.set_reward_estimate(r)
+        pi, Q = cg.forward()
+        demo_losses = update_losses(pi, demo_losses)
+
+        for transition in trial.transitions:
+            r = transition.reward_estimate
+            print(f'Reawrd Estimate: {r}')
+            cg.set_reward_estimate(r)
+            pi, Q = cg.forward()
+            demo_losses = update_losses(pi, demo_losses)
+
+    ## Confirm that all lists have the same length:
+    len_check = None
+    all_same_length = True
+    for k, v in demo_losses.items():
+        if len_check is None:
+            len_check = len(v)
+        else:
+            all_same_length = all_same_length & (len_check == len(v))
+        print(k, len(v))
+        assert(all_same_length)
+
+    return demo_losses
+
+def plot_losses(demonstration_losses, show=True):
+    """
+    Plots demo loss as a function of timesteps
+    """
+    if not show:
+        plt.ioff()
+
+    avg_loss = None
+    N = len(demonstration_losses)
+    for k, v in demonstration_losses.items():
+        if avg_loss is not None:
+            avg_loss[:] = avg_loss[:] + np.array(v)
+        else:
+            avg_loss = np.array(v)
+        x = np.arange(len(v))
+        plt.plot(x, v, label=str(k))
+    avg_loss[:] = avg_loss[:] / N
+    x = np.arange(len(avg_loss))
+    plt.plot(x, avg_loss, label='avg', linewidth=1.5)
+
+    #for k, v in demonstration_losses.items():
+    #    x = np.arange(len(v))
+    #    plt.plot(x[-1], v[-1], str(k))
+    #x = np.arange(len(avg_loss))
+    #plt.plot(x[-1], avg_loss[-1], 'avg')
+
+    plt.xlabel('Steps')
+    plt.ylabel('Loss After Timestep')
+    plt.title('Losses of Demostrated Examples')
+    #plt.legend()
+    if show:
+        plt.show()
+    else:
+        plt.savefig("loss.per_step.pdf", bbox_inches='tight')
+        plt.close()
+    
+
 def parse_args():
-
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    # yapf: disable
     parser.add_argument('--mode', help='"train" or "test" mode', required=True, type=str)
     parser.add_argument('--dataset', help='path to dataset', type=str)
-    # yapf: enable
-
+    parser.add_argument('--prepopulate', help='prepopulate with action feedback',
+        dest='prepopulate', action='store_true')
     return parser.parse_args()
 
+def prepopulate(cg):
+    r, c = cg.env.random_start_state()
+    g = cg.env.get_goal_state()
+    prepop_trial_data = Trial((r,c), g, cg.current_reward_estimate(), cg.env.get_world())
+    prepop_trial_data.register_feedback_type(cg.env.SCALAR_FEEDBACK)
+    prepop_trial_data.register_feedback_type(cg.env.ACTION_FEEDBACK)
+
+    nrows, ncols = cg.env.world.shape
+    acts = cg.env.actions
+    grid_map = cg.env.world
+
+    steps = 0
+    for r in range(nrows):
+        for c in range(ncols):
+            action, local_policy = cg.chooseAction(r, c)
+            feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=False)
+            feedback = None
+            ## Classify the feedback
+            feedback_type = cg.env.classify_feedback(feedback_str)
+            if feedback_type == cg.env.ACTION_FEEDBACK:
+                print("Action Feedback Provided")
+                #Collect Trajectories
+                trajacts, trajcoords = cg.env.feedback_to_demonstration(feedback_str, r, c)
+                feedback = trajacts[0]
+            prepop_trial_data.add_transition(
+                steps, cg.current_reward_estimate(),
+                (r,c), action, local_policy, feedback_type, feedback
+            )
+            steps += 1
+
+    return prepop_trial_data
 
 if __name__ == '__main__':
     args = parse_args()
     all_training_data = None
+    demonstration_losses = None
     ## Select a world
     idx = 0
     grid_maps, state_starts, viz_starts = Worlds.define_worlds()
     env = Environment(grid_maps[idx], state_starts[idx], viz_starts[idx], Worlds.categories)
     cg = ComputationGraph(env)
+    prepop_trial_data = None
     if args.mode == "train":
+        if args.prepopulate:
+            print("Prepopulating trial data")
+            prepop_trial_data = prepopulate(cg)
         episodes = 10
-
-        all_training_data = train(episodes, cg)
+        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data)
     elif args.mode == "test":
         if args.dataset is None:
             print(f"Dataset path must be specified.")
@@ -571,10 +704,18 @@ if __name__ == '__main__':
 
         with open(args.dataset, 'rb') as f:
             all_training_data = pickle.load(f)
+            ## Check if we have the loss saved in the pickle file
+            try:
+                demonstration_losses = pickle.load(f)
+            except EOFError:
+                print("No demonstration losses in this dataset")
     else:
         print(f"Mode must be train or test")
         exit()
 
     plt.rcParams.update({'font.size': 20})
     all_violations = compute_violations(all_training_data, cg)
-    plot_violations(all_violations, args.dataset, show=True)
+    plot_violations(all_violations, args.dataset, show=False)
+    if demonstration_losses is not None:
+        demo_losses = compute_demonstration_losses(all_training_data, cg, demonstration_losses)
+        plot_losses(demo_losses, show=False)
