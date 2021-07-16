@@ -472,7 +472,7 @@ def compute_violations(data, cg):
             # print("Standard Deviation Violation Count: " + str(round(np.std(violation_map), 3)))
             print("Average Iteration Count: " + str(np.mean(iteration_map)))
             # print("Standard Deviation Iteration Count: " + str(round(np.std(iteration_map), 3)))
-        return (np.mean(iteration_map), np.mean(violation_map))
+        return iteration_map, violation_map
         # returns number of violations in a state
 
     def stateViolations(grid, pi, r, c):
@@ -495,6 +495,7 @@ def compute_violations(data, cg):
         return (it, viol)
 
     violations_per_trial = []
+    detailed_violations_per_trial = []
     for trial in data:
         violations = []
         r = trial.reward_estimate
@@ -502,18 +503,22 @@ def compute_violations(data, cg):
         cg.env.world = trial.grid_map
         cg.set_reward_estimate(r)
         pi, Q = cg.forward()
-        violations.append(policyViolations(pi))
+        iteration_map, violation_map = policyViolations(pi)
+        violations.append((np.mean(iteration_map),np.mean(violation_map)))
+        detailed_violations_per_trial.append((iteration_map, violation_map))
         for transition in trial.transitions:
             r = transition.reward_estimate
             print(f'Reawrd Estimate: {r}')
             cg.set_reward_estimate(r)
             pi, Q = cg.forward()
-            violations.append(policyViolations(pi))
+            iteration_map, violation_map = policyViolations(pi)
+            violations.append((np.mean(iteration_map),np.mean(violation_map)))
+            detailed_violations_per_trial.append((iteration_map, violation_map))
         violations_per_trial.append(violations)
 
-    return violations_per_trial
+    return violations_per_trial, detailed_violations_per_trial
 
-def plot_violations(violations_list, save_prefix, show=True):
+def plot_violations(violations_list, detailed_violations, save_prefix, show=True):
     """
     Plots violations as a function of trial
     Plots violations over the course of a trial
@@ -555,6 +560,24 @@ def plot_violations(violations_list, save_prefix, show=True):
         plt.show()
     else:
         plt.savefig(save_prefix+".per_step.pdf", bbox_inches='tight')
+        plt.close()
+
+    ## Plots of detailed policy violations as trials progress,
+    ## The violation map is flattened to 1D and shown as a time series
+    ## First, create the flattened timeseries matrix of violations
+    total_steps = len(detailed_violations)
+    det_vio = [x[1] for x in detailed_violations]
+    flattened_violations = np.array(det_vio).reshape((total_steps, 50)).T
+    plt.matshow(flattened_violations)
+    plt.yticks(np.arange(50))
+    plt.grid(True, which='both', axis='y', color='r')
+    plt.xlabel('Steps')
+    plt.ylabel('State')
+    plt.title('States in which Policy Violations Occured at Timestep')
+    if show:
+        plt.show()
+    else:
+        plt.savefig(save_prefix+".detailed_per_step_violations.pdf", bbox_inches='tight')
         plt.close()
 
 def compute_demonstration_losses(data, cg, demonstration_losses):
@@ -643,6 +666,8 @@ def parse_args():
     parser.add_argument('--dataset', help='path to dataset', type=str)
     parser.add_argument('--prepopulate', help='prepopulate with action feedback',
         dest='prepopulate', action='store_true')
+    parser.add_argument('--hide', help='hide plots, used for autosaving plots',
+        dest='hide', action='store_true')
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -687,6 +712,13 @@ if __name__ == '__main__':
     env = Environment(grid_maps[idx], state_starts[idx], viz_starts[idx], Worlds.categories)
     cg = ComputationGraph(env)
     prepop_trial_data = None
+    show_plots = True
+    if args.hide:
+        show_plots = False
+        if args.dataset is None:
+            print(f"Save prefix must be specified if hiding plots.")
+            exit()
+
     if args.mode == "train":
         if args.prepopulate:
             print("Prepopulating trial data")
@@ -714,8 +746,8 @@ if __name__ == '__main__':
         exit()
 
     plt.rcParams.update({'font.size': 20})
-    all_violations = compute_violations(all_training_data, cg)
-    plot_violations(all_violations, args.dataset, show=False)
+    all_violations, detailed_violations = compute_violations(all_training_data, cg)
+    plot_violations(all_violations, detailed_violations, args.dataset, show=show_plots)
     if demonstration_losses is not None:
         demo_losses = compute_demonstration_losses(all_training_data, cg, demonstration_losses)
-        plot_losses(demo_losses, show=False)
+        plot_losses(demo_losses, show=show_plots)
