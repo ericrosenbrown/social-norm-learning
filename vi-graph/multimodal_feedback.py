@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
-
 class ComputationGraph:
     class lossdict(dict):
         def __init__(self, *args, **kw):
@@ -28,7 +27,6 @@ class ComputationGraph:
             parts = []
             for k, v in self.items():
                 parts.append('{0}: {1} -> {2}'.format(k[0], self.action_mapping[k[1]], str(v[-1])))
-
             return '\n'.join(parts)
 
     def __init__(self, env):
@@ -338,6 +336,90 @@ class Trial:
         last_transition = self.transitions[-1]
         self.transitions[-1] = Transition(*((last_transition[0], r) + last_transition[2:]))
 
+class GridWorldRewardModel:
+    def __init__(self, reward_features, env, gamma):
+        self.gamma = gamma
+        self.env = env
+        ## Grid map is a 2D representation of the GridWorld. Each element is the category
+        self.grid_map = torch.tensor(env.world, dtype=int, requires_grad=False)
+        ## Observation and action space is given by the flattened grid_world, it is 1D.
+        self.obs_space = torch.arange(nrows*ncols, dtype=int)
+        self.act_space = torch.arange(len(actions), dtype=int)
+        ## Represents possible actions
+        self.actions = torch.tensor(np.arange(env.actions), dtype=int, requires_grad=False)
+        ## R(s,a,s') = R(s,a,\phi(s')), feature based rewards vector
+        self.feature_rewards = torch.tensor(reward_features, dtype=env.dtype, requires_grad=True)
+        self.matmap = env.get_matmap()
+        nrows, ncols, ncategories = self.matmap.shape
+        new_rk = self.feature_rewards.unsqueeze(0)
+        new_rk = new_rk.unsqueeze(0)
+        new_rk = new_rk.expand(nrows, ncols, ncategories)
+        ## Dot product to obtain the reward function applied to the matrix map
+        rfk = torch.mul(self.matmap, new_rk)
+        rfk = rfk.sum(axis=-1) ## 2D representation, i.e. recieve R((r,c)) reward for arriving at (r,c)
+        self.reward_model = rfk.view(nrows*ncols) ## flattened 1D view of the 2D grid
+        ## Create 3D verasion of rewrd model: (s,a,s'). The above version corresponds with s'
+        self.full_reward_model = torch.zeros((nrows*ncols, len(actions), nrows*ncols))  ## R(s,a,s')
+        self.trans_dict = self.env.flattened_sas_transitions()
+        self.trans_tuple = self.env.all_sas_transitions(self.trans_dict)
+        for s,a,sp in trans_tuple:
+            self.full_reward_model[s,a,sp] = self.reward_model[sp]
+        self.canonicalized_reward = self.get_canonicalized_reward(self.trans_dict, self.trans_tuple)
+
+    def expected_reward_from_s(self, s, transitions):
+        """
+        Computes the mean reward exactly starting in state s, averaged
+        over the possible (a,s') allowed from state s
+        (s,a,s') are in terms of 1D representation, i.e. s, s' \in {0,...,|S|-1}
+
+        transitions is a {s: {a: s'}} dict
+        """
+        return torch.mean(self.reward_model[[sp for a, sp in transitions[s].items()]])
+
+    def expected_reward_over_sas(self, transitions):
+        """
+        transitions is a tuple( tuple(s,a,s'), ... )
+        """
+        ## NOTE: We need to make a 1D tensor that gathers from specific indices represented by sasp
+        ## This can be done with the 1D reward model
+        return torch.mean(self.reward_model[[sasp[2] for sasp in transitions]])
+
+    def get_canonicalized_reward(self, transitions_dict, transitions_tuple):
+        canonicalized = torch.clone(self.full_reward_model) ## R(s,a,s')
+        ## Below, used to compute R(s',A,S') and R(s,A,S')
+        mean_from_state = torch.tensor(
+            [self.expected_reward_from_s(state, transitions_dict) for state in range(self.env.size)]
+        )
+
+        ## Compute E[R(S,A,S')]
+        mean_reward = torch.sum(self.full_reward_model)/len(transitions_tuple)
+        for s,a,sp in transitions_tuple:
+            canonicalized[s,a,sp] += (self.gamma*mean_from_state[sp] - mean_from_state[s] - self.gamma*mean_reward)
+        return canonicalized
+
+    def epic_distance(self, other, samples):
+        shape = self.canonicalized_reward.shape
+        S = shape[0]
+        A = shape[1]
+        ra = torch.flatten(self.canonicalized_reward)
+        rb = torch.flatten(other.canonicalized_reward)
+
+        idx = (lambda s,a,sp: s*A*S + a*S + sp)
+        ## Sample indices
+        indices = np.array([idx(s,a,sp) for s,a,sp in samples])
+        return self.pearson_distance(ra[indices], rb[indices])
+
+    def pearson_distance(self, ra, rb):
+        mu_a = torch.mean(ra)
+        mu_b = torch.mean(rb)
+        var_a = torch.mean(torch.square(ra - mu_a))
+        var_b = torch.mean(torch.square(rb - mu_b))
+
+        cov = torch.mean((ra - mu_a) * (rb - mu_b))
+        corr = cov / torch.sqrt(var_a * var_b)
+        corr = torch.min(corr, 1.0)
+        return torch.sqrt((1.0-corr)/2.0)
+
 def train(episodes, cg, prepop_trial_data=None):
     """
     Train the agent's estimate of the reward function
@@ -622,6 +704,35 @@ def compute_demonstration_losses(data, cg, demonstration_losses):
         assert(all_same_length)
 
     return demo_losses
+
+def compute_epic_distances(data, cg):
+    nrows, ncols = cg.env.world.shape
+    acts = cg.env.actions
+    grid_map = cg.env.world
+
+    reward_models = []
+    for trial in data:
+        r = trial.reward_estimate
+        reward_models.append(GridWorldRewardModel(r, grip_map, acts))
+        for transition in trial.transitions:
+            r = transition.reward_estimate
+            reward_models.append(GridWorldRewardModel(r, grip_map, acts))
+
+    ## Now we have our list of reward models. Canonicalized each one
+
+    ## TODO: Use tabular? Use epic_sample?
+    ## Try to implement on own?
+    ## Overall steps to compute the EPIC psuedometric:
+    ## 0) The reward functions must be R(s,a,s')
+    ## 1) Canonicalize the reward functions
+    ##    C_Ds_Da(R)(s,a,s') = R(s,a,s')+E[gR(s',A,S') - R(s,A,S') - gR(S,A,S')]
+    ## 2) Compute the Pearson distance between the two canonicalized reward functions
+    ##    C1 = C(R_1)(S,A,S'), C2 = C(R_2)(S,A,S')
+    ##    where C1 and C2 are dependent random variables that depend on S,A,S' which are drawn IID
+    ##    from D_S and D_A.
+    ## Use EPIC as part of objective function?
+
+    return violations_per_trial, detailed_violations_per_trial
 
 def plot_losses(demonstration_losses, show=True):
     """

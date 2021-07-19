@@ -27,6 +27,38 @@ class Environment:
         self.SCALAR_FEEDBACK = 100
         self.ACTION_FEEDBACK = 200
 
+    def flattened_sas_transitions(self):
+        """
+        Returns 1D version of (s,a,s') map
+        """
+        nrows, ncols = self.world.shape
+        state_idx = (lambda r, c: r*ncols + c)
+        in_bounds = (lambda r, c: (0 <= r and r < nrows) and (0 <= c and c < ncols))
+        transitions = dict()
+        for r in range(nrows):
+            for c in range(ncols):
+                for a in range(len(self.actions)):
+                    action = self.actions[a]
+                    s = state_idx(r,c)
+                    rp = r + action[0]
+                    cp = c + action[1]
+                    if in_bounds(rp, cp):
+                        sp = state_idx(rp,cp)
+                        if s not in transitions:
+                            transitions[s] = {a: sp}
+                        else:
+                            transitions[s][a] = sp
+        return transitions
+
+    def all_sas_transitions(self, transitions):
+        """
+        Given a transitions dict, returns the possible tuples (s,a,s')
+        """
+        return tuple( tuple(s,a,sp)
+            for s, asp in transitions.items()
+            for a, sp in asp.items()
+        )
+
     def get_world(self):
         return copy.deepcopy(self.world)
 
