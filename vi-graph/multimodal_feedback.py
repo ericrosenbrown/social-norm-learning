@@ -337,20 +337,20 @@ class Trial:
         self.transitions[-1] = Transition(*((last_transition[0], r) + last_transition[2:]))
 
 class GridWorldRewardModel:
-    def __init__(self, reward_features, env, gamma):
+    def __init__(self, reward_features, env, gamma, trans_dict, trans_tuple):
         self.gamma = gamma
         self.env = env
+        self.matmap = env.get_matmap()
+        nrows, ncols, ncategories = self.matmap.shape
         ## Grid map is a 2D representation of the GridWorld. Each element is the category
         self.grid_map = torch.tensor(env.world, dtype=int, requires_grad=False)
         ## Observation and action space is given by the flattened grid_world, it is 1D.
         self.obs_space = torch.arange(nrows*ncols, dtype=int)
-        self.act_space = torch.arange(len(actions), dtype=int)
+        self.act_space = torch.arange(len(env.actions), dtype=int)
         ## Represents possible actions
-        self.actions = torch.tensor(np.arange(env.actions), dtype=int, requires_grad=False)
+        self.actions = torch.arange(len(env.actions), dtype=int, requires_grad=False)
         ## R(s,a,s') = R(s,a,\phi(s')), feature based rewards vector
         self.feature_rewards = torch.tensor(reward_features, dtype=env.dtype, requires_grad=True)
-        self.matmap = env.get_matmap()
-        nrows, ncols, ncategories = self.matmap.shape
         new_rk = self.feature_rewards.unsqueeze(0)
         new_rk = new_rk.unsqueeze(0)
         new_rk = new_rk.expand(nrows, ncols, ncategories)
@@ -359,9 +359,9 @@ class GridWorldRewardModel:
         rfk = rfk.sum(axis=-1) ## 2D representation, i.e. recieve R((r,c)) reward for arriving at (r,c)
         self.reward_model = rfk.view(nrows*ncols) ## flattened 1D view of the 2D grid
         ## Create 3D verasion of rewrd model: (s,a,s'). The above version corresponds with s'
-        self.full_reward_model = torch.zeros((nrows*ncols, len(actions), nrows*ncols))  ## R(s,a,s')
-        self.trans_dict = self.env.flattened_sas_transitions()
-        self.trans_tuple = self.env.all_sas_transitions(self.trans_dict)
+        self.full_reward_model = torch.zeros((nrows*ncols, len(env.actions), nrows*ncols))  ## R(s,a,s')
+        self.trans_dict = trans_dict
+        self.trans_tuple = trans_tuple
         for s,a,sp in trans_tuple:
             self.full_reward_model[s,a,sp] = self.reward_model[sp]
         self.canonicalized_reward = self.get_canonicalized_reward(self.trans_dict, self.trans_tuple)
@@ -388,7 +388,7 @@ class GridWorldRewardModel:
         canonicalized = torch.clone(self.full_reward_model) ## R(s,a,s')
         ## Below, used to compute R(s',A,S') and R(s,A,S')
         mean_from_state = torch.tensor(
-            [self.expected_reward_from_s(state, transitions_dict) for state in range(self.env.size)]
+            [self.expected_reward_from_s(state, transitions_dict) for state in range(self.env.world.size)]
         )
 
         ## Compute E[R(S,A,S')]
@@ -398,6 +398,9 @@ class GridWorldRewardModel:
         return canonicalized
 
     def epic_distance(self, other, samples):
+        """
+        sample is (s,a,s') tuples
+        """
         shape = self.canonicalized_reward.shape
         S = shape[0]
         A = shape[1]
@@ -417,7 +420,7 @@ class GridWorldRewardModel:
 
         cov = torch.mean((ra - mu_a) * (rb - mu_b))
         corr = cov / torch.sqrt(var_a * var_b)
-        corr = torch.min(corr, 1.0)
+        corr = torch.clamp(corr, -1.0, 1.0)
         return torch.sqrt((1.0-corr)/2.0)
 
 def train(episodes, cg, prepop_trial_data=None):
@@ -600,6 +603,166 @@ def compute_violations(data, cg):
 
     return violations_per_trial, detailed_violations_per_trial
 
+def min_mean_max_violations(violations):
+    """
+    Obtain the min, mean, and max of the input violations
+    """
+    min_violations = []
+    max_violations = []
+    avg_violations = []
+    end_violations = []
+    ini_violations = []
+    len_trial = []
+    for trial_violations in violations:
+        min_violations.append(min(v[1] for v in trial_violations))
+        max_violations.append(max(v[1] for v in trial_violations))
+        end_violations.append(trial_violations[-1][1])
+        ini_violations.append(trial_violations[0][1])
+        steps = len(trial_violations)
+        avg_violations.append(sum(v[1] for v in  trial_violations) / steps)
+        len_trial.append(steps)
+
+    return {
+        'min': min_violations,
+        'max': max_violations,
+        'avg': avg_violations,
+        'end': end_violations,
+        'ini': ini_violations,
+        'len': len_trial
+    }
+
+def plot_group_violations(group_violations):
+    """
+    Plots violations as a function of trial. Specifically,
+    plots the max, mean, and min of a trail, averaged over a set of seeds.
+
+    The structure of group_violations is:
+    {
+        grp_name: {
+            'min': [average of seeds of ep1 val, ...],
+            'max': [average of seeds of ep1 val, ...],
+            'avg': [average of seeds of ep1 val, ...],
+            'end': [average of seeds of ep1 val, ...],
+        }
+    }
+
+    """
+    styles = {
+        'min': ':',
+        'max': '--',
+        'avg': '-.',
+        'end': '-'
+    }
+    color_list = ['blue','green', 'red', 'cyan', 'magenta', 'yellow', 'black']
+    colors = {k:v for k,v in zip(group_violations, color_list)}
+
+    print(group_violations)
+
+    ## Violation Averages
+    for grp, avgs in group_violations.items():
+        x = [n+1 for n in range(len(avgs['end']))]
+        for k in ('min', 'max', 'avg', 'end'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_'+k)
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Violations')
+    plt.title('Violation Averages')
+    plt.legend()
+    plt.show()
+
+    ## Cumulative Effort
+    for grp, avgs in group_violations.items():
+        x = [n+1 for n in range(len(avgs['end']))]
+        plt.plot(x, np.cumsum(avgs['len']), linestyle='-', color=colors[grp], label=grp+'_len')
+    plt.xlabel('Trial')
+    plt.ylabel('Steps')
+    plt.title('Cumulative Effort')
+    plt.legend()
+    plt.show()
+
+    ## Effort per Trial
+    for grp, avgs in group_violations.items():
+        x = [n+1 for n in range(len(avgs['end']))]
+        plt.plot(x, avgs['len'], linestyle='-', color=colors[grp], label=grp+'_len')
+    plt.xlabel('Trial')
+    plt.ylabel('Steps')
+    plt.title('Effort')
+    plt.legend()
+    plt.show()
+
+    ## Violations per Total Effort
+    for grp, avgs in group_violations.items():
+        steps = [0]
+        steps.extend(avgs['len'])
+        x = np.cumsum(steps)
+        for k in ('min', 'max', 'avg', 'end'):
+            y = [avgs['ini'][0]]
+            y.extend(avgs[k])
+            plt.plot(x, y, linestyle=styles[k], color=colors[grp], label=grp+'_'+k)
+        ymin = [avgs['ini'][0]]
+        ymin.extend(avgs['min'])
+        ymax = [avgs['ini'][0]]
+        ymax.extend(avgs['max'])
+        plt.fill_between(x, ymin, ymax, color=colors[grp], alpha=0.2)
+    plt.xlabel('Total Effort')
+    plt.ylabel('Violations')
+    plt.title('Violations by Effort')
+    plt.legend()
+    plt.show()
+
+    ## Efficiency is Change in Violations between Trials / Amount of Effort for Trial
+    ## Violations per Total Effort
+    for grp, avgs in group_violations.items():
+        steps = [0]
+        steps.extend(avgs['len'])
+        x = np.cumsum(steps)
+        trial_effort = np.array(avgs['len'])
+        ymin = None
+        ymax = None
+        for k in ('min', 'max', 'avg', 'end'):
+            y = [avgs['ini'][0]]
+            y.extend(avgs[k])
+            L = np.array(y[:-1])
+            R = np.array(y[1:])
+            efficiency = (L-R)/trial_effort
+            if k == 'min':
+                ymin = efficiency
+            if k == 'max':
+                ymax = efficiency
+            plt.plot(x[1:], efficiency, linestyle=styles[k], color=colors[grp], label=grp+'_'+k)
+        plt.fill_between(x[1:], ymin, ymax, color=colors[grp], alpha=0.2)
+    plt.xlabel('Total Effort')
+    plt.ylabel('Efficiency')
+    plt.title('Improvement Efficiency')
+    plt.legend()
+    plt.show()
+
+    ## Efficiency per Trial
+    for grp, avgs in group_violations.items():
+        steps = [0]
+        steps.extend(avgs['len'])
+        x = np.arange(len(avgs['len'])+1)
+        trial_effort = np.array(avgs['len'])
+        ymin = None
+        ymax = None
+        for k in ('min', 'max', 'avg', 'end'):
+            y = [avgs['ini'][0]]
+            y.extend(avgs[k])
+            L = np.array(y[:-1])
+            R = np.array(y[1:])
+            efficiency = (L-R)/trial_effort
+            if k == 'min':
+                ymin = efficiency
+            if k == 'max':
+                ymax = efficiency
+            plt.plot(x[1:], efficiency, linestyle=styles[k], color=colors[grp], label=grp+'_'+k)
+        plt.fill_between(x[1:], ymin, ymax, color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Efficiency')
+    plt.title('Improvement Efficiency')
+    plt.legend()
+    plt.show()
+
 def plot_violations(violations_list, detailed_violations, save_prefix, show=True):
     """
     Plots violations as a function of trial
@@ -659,7 +822,7 @@ def plot_violations(violations_list, detailed_violations, save_prefix, show=True
     if show:
         plt.show()
     else:
-        plt.savefig(save_prefix+".detailed_per_step_violations.pdf", bbox_inches='tight')
+        plt.savefig(save_prefix+".state_violations_per_step.pdf", bbox_inches='tight')
         plt.close()
 
 def compute_demonstration_losses(data, cg, demonstration_losses):
@@ -705,21 +868,7 @@ def compute_demonstration_losses(data, cg, demonstration_losses):
 
     return demo_losses
 
-def compute_epic_distances(data, cg):
-    nrows, ncols = cg.env.world.shape
-    acts = cg.env.actions
-    grid_map = cg.env.world
-
-    reward_models = []
-    for trial in data:
-        r = trial.reward_estimate
-        reward_models.append(GridWorldRewardModel(r, grip_map, acts))
-        for transition in trial.transitions:
-            r = transition.reward_estimate
-            reward_models.append(GridWorldRewardModel(r, grip_map, acts))
-
-    ## Now we have our list of reward models. Canonicalized each one
-
+def compute_distances(data, cg):
     ## TODO: Use tabular? Use epic_sample?
     ## Try to implement on own?
     ## Overall steps to compute the EPIC psuedometric:
@@ -731,10 +880,118 @@ def compute_epic_distances(data, cg):
     ##    where C1 and C2 are dependent random variables that depend on S,A,S' which are drawn IID
     ##    from D_S and D_A.
     ## Use EPIC as part of objective function?
+    nrows, ncols = cg.env.world.shape
+    acts = cg.env.actions
+    grid_map = cg.env.world
 
-    return violations_per_trial, detailed_violations_per_trial
+    trans_dict = cg.env.flattened_sas_transitions()
+    trans_tuple = cg.env.all_sas_transitions(trans_dict)
+    reward_models = []
+    for trial in data:
+        r = trial.reward_estimate
+        reward_models.append(GridWorldRewardModel(r, cg.env, cg.gamma, trans_dict, trans_tuple))
+        for transition in trial.transitions:
+            r = transition.reward_estimate
+            reward_models.append(GridWorldRewardModel(r, cg.env, cg.gamma, trans_dict, trans_tuple))
 
-def plot_losses(demonstration_losses, show=True):
+    ## Now we have our list of reward models. Canonicalize pairs of consecutive reward models
+    n_models = len(reward_models)
+    distances = dict()
+    distances['epic'] = [] ## EPIC distance
+    distances['l2_features'] = [] ## L2 norm of the features
+    distances['l2_features_norm'] = [] ## L2 norm of normalized features
+    distances['l2_reward'] = [] ## L2 norm of R(s,a,s')
+    distances['l2_reward_norm'] = [] ## L2 norm of normalized R(s,a,s')
+    distances['l2_canonical'] = [] ## L2 norm of the canonialized reward
+    distances['l2_canonical_norm'] = [] ## L2 norm of the normalized canonicalized reward
+    A = len(acts)
+    S = nrows*ncols
+    idx = (lambda s,a,sp: s*A*S + a*S + sp)
+    ## Sample indices
+    indices = np.array([idx(s,a,sp) for s,a,sp in trans_tuple])
+    for idx0, idx1 in zip(range(0,n_models-1),range(1,n_models)):
+        cr0 = reward_models[idx0]
+        cr1 = reward_models[idx1]
+        distances['epic'].append(cr0.epic_distance(cr1, trans_tuple).cpu().detach().numpy())
+        distances['l2_features'].append(l2_norm(cr0.feature_rewards, cr1.feature_rewards).cpu().detach().numpy())
+        distances['l2_features_norm'].append(
+            l2_norm(
+                normalize(cr0.feature_rewards),
+                normalize(cr1.feature_rewards)
+            ).cpu().detach().numpy()
+        )
+        distances['l2_reward'].append(
+            l2_norm(
+                torch.flatten(cr0.full_reward_model),
+                torch.flatten(cr1.full_reward_model),
+                indices=indices
+            ).cpu().detach().numpy()
+        )
+        distances['l2_reward_norm'].append(
+            l2_norm(
+                normalize(torch.flatten(cr0.full_reward_model), indices=indices),
+                normalize(torch.flatten(cr1.full_reward_model), indices=indices)
+            ).cpu().detach().numpy()
+        )
+        distances['l2_canonical'].append(
+            l2_norm(
+                torch.flatten(cr0.canonicalized_reward),
+                torch.flatten(cr1.canonicalized_reward),
+                indices=indices
+            ).cpu().detach().numpy()
+        )
+        distances['l2_canonical_norm'].append(
+            l2_norm(
+                normalize(torch.flatten(cr0.canonicalized_reward), indices=indices),
+                normalize(torch.flatten(cr1.canonicalized_reward), indices=indices)
+            ).cpu().detach().numpy()
+        )
+    return distances
+
+def normalize(a, indices=None):
+    norm = None
+    v = None
+    if indices is None:
+        v = a
+    else:
+        v = a[indices]
+    norm = torch.norm(v)
+    if norm < 1e-24:
+        return v
+    else:
+        return v/norm
+
+def l2_norm(a, b, indices=None):
+    """
+    Computes the L2 norm ||a-b|| over the indices specified.
+
+    If indices=None, then ||a-b||_2 is computed
+    """
+    if indices is None:
+        return torch.norm(a-b)
+    else:
+        c = (a-b)[indices]
+        return torch.norm(c)
+
+def plot_distances(distances, label, save_prefix, show=True):
+    if not show:
+        plt.ioff()
+
+    x = np.arange(len(distances))
+    plt.plot(x, distances, label=label)
+
+    plt.xlabel('Steps')
+    plt.ylabel(label + ' disance between t and t+1')
+    plt.title(label + ' distance over time')
+    #plt.legend()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(save_prefix+"."+label+"_distance.per_step.pdf", bbox_inches='tight')
+        plt.close()
+
+
+def plot_losses(demonstration_losses, save_prefix, show=True):
     """
     Plots demo loss as a function of timesteps
     """
@@ -767,18 +1024,20 @@ def plot_losses(demonstration_losses, show=True):
     if show:
         plt.show()
     else:
-        plt.savefig("loss.per_step.pdf", bbox_inches='tight')
+        plt.savefig(save_prefix+".loss.per_step.pdf", bbox_inches='tight')
         plt.close()
     
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--mode', help='"train" or "test" mode', required=True, type=str)
+    parser.add_argument('--mode', help='"train", "test", or "plot" mode', required=True, type=str)
     parser.add_argument('--dataset', help='path to dataset', type=str)
     parser.add_argument('--prepopulate', help='prepopulate with action feedback',
         dest='prepopulate', action='store_true')
     parser.add_argument('--hide', help='hide plots, used for autosaving plots',
         dest='hide', action='store_true')
+    parser.add_argument('--inputs', help='paths to dataset files used for plotting', nargs='+')
+    parser.add_argument('--groupings', help='keyword groupings', nargs='+')
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -852,6 +1111,50 @@ if __name__ == '__main__':
                 demonstration_losses = pickle.load(f)
             except EOFError:
                 print("No demonstration losses in this dataset")
+    elif args.mode == "plot":
+        plt.rcParams.update({'font.size': 20})
+        if args.inputs is None or len(args.inputs) == 0:
+            print(f'input datasets must be specified')
+            exit()
+        ## Plot violation averages, maxes, and mins
+        group_avg = {grp:None for grp in args.groupings}
+        group_num = {grp:0 for grp in args.groupings}
+
+        for dataset in args.inputs:
+            if not os.path.isfile(dataset):
+                print(f"Dataset path is not a file.")
+                exit()
+            with open(dataset, 'rb') as f:
+                all_training_data = pickle.load(f)
+                ## Check if we have the loss saved in the pickle file
+                try:
+                    demonstration_losses = pickle.load(f)
+                except EOFError:
+                    print("No demonstration losses in this dataset")
+            all_violations, detailed_violations = compute_violations(all_training_data, cg)
+            violations_dict = min_mean_max_violations(all_violations)
+
+            ## Determine which group this dataset belongs to
+            for grp, grp_avg in group_avg.items():
+                if grp in dataset:
+                    if grp_avg is None:
+                        group_avg[grp] = dict(violations_dict)
+                        group_num[grp] = 1
+                    else:
+                        ## Update running averages
+                        n = group_num[grp] + 1
+                        group_num[grp] = n
+                        ## grp_avg contains the previous average
+                        for k in ('min', 'max', 'avg', 'end', 'ini', 'len'):
+                            for idx, v in enumerate(grp_avg[k]):
+                                group_avg[grp][k][idx] = (v*(n-1) + violations_dict[k][idx])/n
+        ## Adjust the baseline (remove the first episode)
+        if 'baseline' in group_avg:
+            for k in ('min', 'max', 'avg', 'end', 'ini', 'len'):
+                group_avg['baseline'][k] = group_avg['baseline'][k][1:]
+        plot_group_violations(group_avg)
+
+        exit()
     else:
         print(f"Mode must be train or test")
         exit()
@@ -861,4 +1164,8 @@ if __name__ == '__main__':
     plot_violations(all_violations, detailed_violations, args.dataset, show=show_plots)
     if demonstration_losses is not None:
         demo_losses = compute_demonstration_losses(all_training_data, cg, demonstration_losses)
-        plot_losses(demo_losses, show=show_plots)
+        plot_losses(demo_losses, args.dataset, show=show_plots)
+
+    distances = compute_distances(all_training_data, cg)
+    for k, v in distances.items():
+        plot_distances(v, k, args.dataset, show=show_plots)

@@ -51,10 +51,11 @@ class Environment:
         return transitions
 
     def all_sas_transitions(self, transitions):
+        print(transitions)
         """
         Given a transitions dict, returns the possible tuples (s,a,s')
         """
-        return tuple( tuple(s,a,sp)
+        return tuple( tuple((s,a,sp))
             for s, asp in transitions.items()
             for a, sp in asp.items()
         )
