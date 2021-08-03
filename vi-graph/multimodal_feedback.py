@@ -525,6 +525,62 @@ def train(episodes, cg, prepop_trial_data=None):
 
     return trial_buffer.all_trials, cg.recorded_losses
 
+def compute_goal_success(data, cg):
+    """
+    Computes the goal success at each timestep
+    Computes the goal success at the end of the episode (= goal success of last timestep)
+    """
+    nrows, ncols = cg.env.world.shape
+    acts = cg.env.actions
+    grid_map = cg.env.world
+
+    def plan(rs, cs, pi, can_reach, steps, max_steps):
+        r, c = rs, cs
+        success = 0
+        while steps < max_steps:
+            if grid_map[r][c] == 4 or can_reach[r*ncols + c] > 0.5:
+                success = 1
+                break
+            maxprob = max(pi[r*ncols+c, :])
+            a = 6
+            for ana in range(5):
+                if pi[r*ncols+c, ana] == maxprob: a = ana
+            r += acts[a][0]
+            c += acts[a][1]
+            steps += 1
+        return success
+
+    def goalSuccess(pi):
+        """
+        For every possible state, does planning with
+        the current policy lead to the goal state?
+        """
+        success = np.zeros(nrows*ncols)
+        for i in range(nrows):
+            for j in range(ncols):
+                success[i*ncols + j] = plan(i, j, pi, success, 0, 50)
+        return np.mean(success)
+
+    goal_rate_per_trial = []
+    for trial in data:
+        goal_rate = []
+        r = trial.reward_estimate
+        print(f'Reawrd Estimate: {r}')
+        cg.env.world = trial.grid_map
+        cg.set_reward_estimate(r)
+        pi, Q = cg.forward()
+        success_rate = goalSuccess(pi)
+        goal_rate.append(success_rate)
+        for transition in trial.transitions:
+            r = transition.reward_estimate
+            print(f'Reawrd Estimate: {r}')
+            cg.set_reward_estimate(r)
+            pi, Q = cg.forward()
+            success_rate = goalSuccess(pi)
+            goal_rate.append(success_rate)
+        goal_rate_per_trial.append(goal_rate)
+    return goal_rate_per_trial
+
 def compute_violations(data, cg):
     """
     Computes the violations at the end of each episode
@@ -631,7 +687,35 @@ def min_mean_max_violations(violations):
         'len': len_trial
     }
 
-def plot_group_violations(group_violations):
+def min_mean_max_goal_success(rates):
+    """
+    Obtain the min, mean, and max of the input goal success rates
+    """
+    min_success = []
+    max_success = []
+    avg_success = []
+    end_success = []
+    ini_success = []
+    len_trial = []
+    for trial_rates in rates:
+        min_success.append(min(r for r in trial_rates))
+        max_success.append(max(r for r in trial_rates))
+        end_success.append(trial_rates[-1])
+        ini_success.append(trial_rates[0])
+        steps = len(trial_rates)
+        avg_success.append(sum(r for r in  trial_rates) / steps)
+        len_trial.append(steps)
+
+    return {
+        'min': min_success,
+        'max': max_success,
+        'avg': avg_success,
+        'end': end_success,
+        'ini': ini_success,
+        'len': len_trial
+    }
+
+def plot_group_violations(group_violations, group_success, show=True):
     """
     Plots violations as a function of trial. Specifically,
     plots the max, mean, and min of a trail, averaged over a set of seeds.
@@ -661,14 +745,34 @@ def plot_group_violations(group_violations):
     ## Violation Averages
     for grp, avgs in group_violations.items():
         x = [n+1 for n in range(len(avgs['end']))]
-        for k in ('min', 'max', 'avg', 'end'):
+        for k in ('min', 'max', 'end'):
             plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_'+k)
         plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
     plt.xlabel('Trial')
     plt.ylabel('Violations')
     plt.title('Violation Averages')
-    plt.legend()
-    plt.show()
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("violation_averages.per_trial.pdf", bbox_inches='tight')
+        plt.close()
+
+    ## Goal Success Averages
+    for grp, avgs in group_success.items():
+        x = [n+1 for n in range(len(avgs['end']))]
+        for k in ('min', 'max', 'end'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_'+k)
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Goal Success')
+    plt.title('Average Goal Success Rate')
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("goal_success.per_trial.pdf", bbox_inches='tight')
+        plt.close()
 
     ## Cumulative Effort
     for grp, avgs in group_violations.items():
@@ -677,8 +781,12 @@ def plot_group_violations(group_violations):
     plt.xlabel('Trial')
     plt.ylabel('Steps')
     plt.title('Cumulative Effort')
-    plt.legend()
-    plt.show()
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("cumulative_effort.per_trial.pdf", bbox_inches='tight')
+        plt.close()
 
     ## Effort per Trial
     for grp, avgs in group_violations.items():
@@ -687,15 +795,19 @@ def plot_group_violations(group_violations):
     plt.xlabel('Trial')
     plt.ylabel('Steps')
     plt.title('Effort')
-    plt.legend()
-    plt.show()
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("effort.per_trial.pdf", bbox_inches='tight')
+        plt.close()
 
     ## Violations per Total Effort
     for grp, avgs in group_violations.items():
         steps = [0]
         steps.extend(avgs['len'])
         x = np.cumsum(steps)
-        for k in ('min', 'max', 'avg', 'end'):
+        for k in ('min', 'max', 'end'):
             y = [avgs['ini'][0]]
             y.extend(avgs[k])
             plt.plot(x, y, linestyle=styles[k], color=colors[grp], label=grp+'_'+k)
@@ -707,8 +819,12 @@ def plot_group_violations(group_violations):
     plt.xlabel('Total Effort')
     plt.ylabel('Violations')
     plt.title('Violations by Effort')
-    plt.legend()
-    plt.show()
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("violations.per_cumulative_effort.pdf", bbox_inches='tight')
+        plt.close()
 
     ## Efficiency is Change in Violations between Trials / Amount of Effort for Trial
     ## Violations per Total Effort
@@ -719,7 +835,7 @@ def plot_group_violations(group_violations):
         trial_effort = np.array(avgs['len'])
         ymin = None
         ymax = None
-        for k in ('min', 'max', 'avg', 'end'):
+        for k in ('min', 'max', 'end'):
             y = [avgs['ini'][0]]
             y.extend(avgs[k])
             L = np.array(y[:-1])
@@ -734,8 +850,12 @@ def plot_group_violations(group_violations):
     plt.xlabel('Total Effort')
     plt.ylabel('Efficiency')
     plt.title('Improvement Efficiency')
-    plt.legend()
-    plt.show()
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("efficiency.per_cumulative_effort.pdf", bbox_inches='tight')
+        plt.close()
 
     ## Efficiency per Trial
     for grp, avgs in group_violations.items():
@@ -745,7 +865,7 @@ def plot_group_violations(group_violations):
         trial_effort = np.array(avgs['len'])
         ymin = None
         ymax = None
-        for k in ('min', 'max', 'avg', 'end'):
+        for k in ('min', 'max', 'end'):
             y = [avgs['ini'][0]]
             y.extend(avgs[k])
             L = np.array(y[:-1])
@@ -760,8 +880,12 @@ def plot_group_violations(group_violations):
     plt.xlabel('Trial')
     plt.ylabel('Efficiency')
     plt.title('Improvement Efficiency')
-    plt.legend()
-    plt.show()
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("efficiency.per_trial.pdf", bbox_inches='tight')
+        plt.close()
 
 def plot_violations(violations_list, detailed_violations, save_prefix, show=True):
     """
@@ -1118,6 +1242,7 @@ if __name__ == '__main__':
             exit()
         ## Plot violation averages, maxes, and mins
         group_avg = {grp:None for grp in args.groupings}
+        group_gsr = {grp:None for grp in args.groupings}
         group_num = {grp:0 for grp in args.groupings}
 
         for dataset in args.inputs:
@@ -1133,6 +1258,8 @@ if __name__ == '__main__':
                     print("No demonstration losses in this dataset")
             all_violations, detailed_violations = compute_violations(all_training_data, cg)
             violations_dict = min_mean_max_violations(all_violations)
+            goal_success_rates = compute_goal_success(all_training_data, cg)
+            goal_success_dict = min_mean_max_goal_success(goal_success_rates)
 
             ## Determine which group this dataset belongs to
             for grp, grp_avg in group_avg.items():
@@ -1140,19 +1267,23 @@ if __name__ == '__main__':
                     if grp_avg is None:
                         group_avg[grp] = dict(violations_dict)
                         group_num[grp] = 1
+                        group_gsr[grp] = dict(goal_success_dict)
                     else:
                         ## Update running averages
                         n = group_num[grp] + 1
                         group_num[grp] = n
                         ## grp_avg contains the previous average
-                        for k in ('min', 'max', 'avg', 'end', 'ini', 'len'):
+                        for k in ('min', 'max', 'end', 'ini', 'len'):
                             for idx, v in enumerate(grp_avg[k]):
                                 group_avg[grp][k][idx] = (v*(n-1) + violations_dict[k][idx])/n
+                            for idx, v in enumerate(group_gsr[grp][k]):
+                                group_gsr[grp][k][idx] = (v*(n-1) + goal_success_dict[k][idx])/n
         ## Adjust the baseline (remove the first episode)
         if 'baseline' in group_avg:
-            for k in ('min', 'max', 'avg', 'end', 'ini', 'len'):
+            for k in ('min', 'max', 'end', 'ini', 'len'):
                 group_avg['baseline'][k] = group_avg['baseline'][k][1:]
-        plot_group_violations(group_avg)
+                group_gsr['baseline'][k] = group_gsr['baseline'][k][1:]
+        plot_group_violations(group_avg, group_gsr, show=show_plots)
 
         exit()
     else:
