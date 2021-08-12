@@ -434,6 +434,15 @@ class Trial:
         self.transitions = []
         self.feedback_indices = dict()
 
+    def amount_of(self, feedback_type):
+        if feedback_type not in self.feedback_indices:
+            return 0
+        else:
+            return len(self.feedback_indices[feedback_type])
+
+    def get_effort(self, feedback_types):
+        return sum(len(self.feedback_indices[k]) for k in feedback_types)
+
     def register_feedback_type(self, feedback_type):
         self.feedback_indices[feedback_type] = []
 
@@ -645,6 +654,18 @@ def train(episodes, cg, prepop_trial_data=None, force_feedback=True):
 
     return trial_buffer.all_trials, cg.recorded_losses
 
+def compute_effort(data, cg):
+    ## Effort = How much feedback was given
+    effort = [trial.get_effort((cg.env.ACTION_FEEDBACK, cg.env.SCALAR_FEEDBACK)) for trial in data]
+    ## Distribution: Quantity of Action, Quantity of Scalar
+    dist = {
+        cg.env.ACTION_FEEDBACK: None,
+        cg.env.SCALAR_FEEDBACK: None
+    }
+    for k in dist:
+        dist[k] = [trial.amount_of(k) for trial in data]
+    return effort, dist
+
 def compute_goal_success(data, cg):
     """
     Computes the goal success at each timestep
@@ -678,7 +699,7 @@ def compute_goal_success(data, cg):
         success = np.zeros(nrows*ncols)
         for i in range(nrows):
             for j in range(ncols):
-                success[i*ncols + j] = plan(i, j, pi, success, 0, 50)
+                success[i*ncols + j] = plan(i, j, pi, success, 0, nrows*ncols)
         return np.mean(success)
 
     goal_rate_per_trial = []
@@ -835,7 +856,9 @@ def min_mean_max_goal_success(rates):
         'len': len_trial
     }
 
-def plot_group_violations(group_violations, group_success, show=True):
+def plot_group_violations(
+    group_violations, group_success, group_effort,
+    group_act, group_sca, group_pra, group_prs, show=True):
     """
     Plots violations as a function of trial. Specifically,
     plots the max, mean, and min of a trail, averaged over a set of seeds.
@@ -895,11 +918,13 @@ def plot_group_violations(group_violations, group_success, show=True):
         plt.close()
 
     ## Cumulative Effort
-    for grp, avgs in group_violations.items():
-        x = [n+1 for n in range(len(avgs['end']))]
-        plt.plot(x, np.cumsum(avgs['len']), linestyle='-', color=colors[grp], label=grp+'_len')
+    for grp, avgs in group_effort.items():
+        x = [n+1 for n in range(len(avgs['min']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, np.cumsum(avgs[k]), linestyle=styles[k], color=colors[grp], label=grp+'_effort')
+        plt.fill_between(x, np.cumsum(avgs['min']), np.cumsum(avgs['max']), color=colors[grp], alpha=0.2)
     plt.xlabel('Trial')
-    plt.ylabel('Steps')
+    plt.ylabel('Effort')
     plt.title('Cumulative Effort')
     if show:
         plt.legend()
@@ -908,18 +933,88 @@ def plot_group_violations(group_violations, group_success, show=True):
         plt.savefig("cumulative_effort.per_trial.pdf", bbox_inches='tight')
         plt.close()
 
-    ## Effort per Trial
+    ## Length per Trial
     for grp, avgs in group_violations.items():
-        x = [n+1 for n in range(len(avgs['end']))]
-        plt.plot(x, avgs['len'], linestyle='-', color=colors[grp], label=grp+'_len')
+        x = [n+1 for n in range(len(avgs['len']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, avgs['len'], color=colors[grp], label=grp+'_len')
+        
+    ## Effort per Trial
+    for grp, avgs in group_effort.items():
+        x = [n+1 for n in range(len(avgs['min']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_effort')
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
     plt.xlabel('Trial')
-    plt.ylabel('Steps')
+    plt.ylabel('Effort')
     plt.title('Effort')
     if show:
         plt.legend()
         plt.show()
     else:
         plt.savefig("effort.per_trial.pdf", bbox_inches='tight')
+        plt.close()
+    
+    ## Feedback Types per Trial
+    for grp, avgs in group_act.items():
+        x = [n+1 for n in range(len(avgs['min']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_effort')
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Num Action')
+    plt.title('Quantity Action Feedback')
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("actions.per_trial.pdf", bbox_inches='tight')
+        plt.close()
+    ## Feedback Types per Trial
+    for grp, avgs in group_pra.items():
+        x = [n+1 for n in range(len(avgs['min']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_effort')
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Pecent Action')
+    plt.title('Percent Action Feedback')
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("percent_actions.per_trial.pdf", bbox_inches='tight')
+        plt.close()
+
+    ## Feedback Types per Trial
+    for grp, avgs in group_sca.items():
+        x = [n+1 for n in range(len(avgs['min']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_effort')
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Num Scalar')
+    plt.title('Quantity Scalar Feedback')
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("scalars.per_trial.pdf", bbox_inches='tight')
+        plt.close()
+    ## Feedback Types per Trial
+    for grp, avgs in group_prs.items():
+        x = [n+1 for n in range(len(avgs['min']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_effort')
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Pecent Scalar')
+    plt.title('Percent Scalar Feedback')
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("percent_scalars.per_trial.pdf", bbox_inches='tight')
         plt.close()
 
     ## Violations per Total Effort
@@ -1367,8 +1462,13 @@ if __name__ == '__main__':
             print(f'input datasets must be specified')
             exit()
         ## Plot violation averages, maxes, and mins
-        group_avg = {grp:None for grp in args.groupings}
-        group_gsr = {grp:None for grp in args.groupings}
+        group_avg = {grp:None for grp in args.groupings} ## Violations
+        group_gsr = {grp:None for grp in args.groupings} ## Goal Success Rate
+        group_eff = {grp:None for grp in args.groupings} ## Effort
+        group_act = {grp:None for grp in args.groupings} ## Action Effort
+        group_sca = {grp:None for grp in args.groupings} ## Scalar Effort
+        group_pra = {grp:None for grp in args.groupings} ## Percent Action
+        group_prs = {grp:None for grp in args.groupings} ## Percent Scalar
         group_num = {grp:0 for grp in args.groupings}
 
         for dataset in args.inputs:
@@ -1386,6 +1486,12 @@ if __name__ == '__main__':
             violations_dict = min_mean_max_violations(all_violations)
             goal_success_rates = compute_goal_success(all_training_data, cg)
             goal_success_dict = min_mean_max_goal_success(goal_success_rates)
+            trial_efforts, effort_dist = compute_effort(all_training_data, cg)
+            ## Percentage Action / Scalar
+            num_action = np.array(effort_dist[cg.env.ACTION_FEEDBACK])
+            num_scalar = np.array(effort_dist[cg.env.SCALAR_FEEDBACK])
+            per_action = num_action / (num_action + num_scalar)
+            per_scalar = num_scalar / (num_action + num_scalar)
 
             ## Determine which group this dataset belongs to
             for grp, grp_avg in group_avg.items():
@@ -1394,6 +1500,31 @@ if __name__ == '__main__':
                         group_avg[grp] = dict(violations_dict)
                         group_num[grp] = 1
                         group_gsr[grp] = dict(goal_success_dict)
+                        group_eff[grp] = {
+                            'min': np.array(trial_efforts),
+                            'avg': np.array(trial_efforts),
+                            'max': np.array(trial_efforts)
+                        }
+                        group_act[grp] = {
+                            'min': np.array(num_action),
+                            'avg': np.array(num_action),
+                            'max': np.array(num_action)
+                        }
+                        group_sca[grp] = { 
+                            'min': np.array(num_scalar),
+                            'avg': np.array(num_scalar),
+                            'max': np.array(num_scalar)
+                        }
+                        group_pra[grp] = {
+                            'min': np.array(per_action),
+                            'avg': np.array(per_action),
+                            'max': np.array(per_action)
+                        }
+                        group_prs[grp] = { 
+                            'min': np.array(per_scalar),
+                            'avg': np.array(per_scalar),
+                            'max': np.array(per_scalar)
+                        }
                     else:
                         ## Update running averages
                         n = group_num[grp] + 1
@@ -1404,12 +1535,62 @@ if __name__ == '__main__':
                                 group_avg[grp][k][idx] = (v*(n-1) + violations_dict[k][idx])/n
                             for idx, v in enumerate(group_gsr[grp][k]):
                                 group_gsr[grp][k][idx] = (v*(n-1) + goal_success_dict[k][idx])/n
+                        ## Update group effort statistics: Update average effort per trial
+                        for idx, v in enumerate(group_eff[grp]['avg']):
+                            group_eff[grp]['avg'][idx] = (v*(n-1) + trial_efforts[idx])/n
+                        for idx, v in enumerate(group_eff[grp]['min']):
+                            group_eff[grp]['min'][idx] = min(v, trial_efforts[idx])
+                        for idx, v in enumerate(group_eff[grp]['max']):
+                            group_eff[grp]['max'][idx] = max(v, trial_efforts[idx])
+
+                        ## Update Effort distribution: number of action feedback per trial
+                        for idx, v in enumerate(group_act[grp]['avg']):
+                            group_act[grp]['avg'][idx] = (v*(n-1) + effort_dist[cg.env.ACTION_FEEDBACK][idx])/n
+                        for idx, v in enumerate(group_act[grp]['min']):
+                            group_act[grp]['min'][idx] = min(v, effort_dist[cg.env.ACTION_FEEDBACK][idx])
+                        for idx, v in enumerate(group_act[grp]['max']):
+                            group_act[grp]['max'][idx] = max(v, effort_dist[cg.env.ACTION_FEEDBACK][idx])
+
+                        ## Update Effort distribution: number of action feedback per trial
+                        for idx, v in enumerate(group_pra[grp]['avg']):
+                            group_pra[grp]['avg'][idx] = (v*(n-1) + per_action[idx])/n
+                        for idx, v in enumerate(group_pra[grp]['min']):
+                            group_pra[grp]['min'][idx] = min(v, per_action[idx])
+                        for idx, v in enumerate(group_pra[grp]['max']):
+                            group_pra[grp]['max'][idx] = max(v, per_action[idx])
+
+                        ## Update Effort Distribution: number of scalar feedback per trial
+                        for idx, v in enumerate(group_sca[grp]['avg']):
+                            group_sca[grp]['avg'][idx] = (v*(n-1) + effort_dist[cg.env.SCALAR_FEEDBACK][idx])/n
+                        for idx, v in enumerate(group_sca[grp]['min']):
+                            group_sca[grp]['min'][idx] = min(v, effort_dist[cg.env.SCALAR_FEEDBACK][idx])
+                        for idx, v in enumerate(group_sca[grp]['max']):
+                            group_sca[grp]['max'][idx] = max(v, effort_dist[cg.env.SCALAR_FEEDBACK][idx])
+
+                        ## Update Effort Distribution: number of scalar feedback per trial
+                        for idx, v in enumerate(group_prs[grp]['avg']):
+                            group_prs[grp]['avg'][idx] = (v*(n-1) + per_scalar[idx])/n
+                        for idx, v in enumerate(group_prs[grp]['min']):
+                            group_prs[grp]['min'][idx] = min(v, per_scalar[idx])
+                        for idx, v in enumerate(group_prs[grp]['max']):
+                            group_prs[grp]['max'][idx] = max(v, per_scalar[idx])
+
         ## Adjust the baseline (remove the first episode)
         if 'baseline' in group_avg:
             for k in ('min', 'max', 'end', 'ini', 'len'):
                 group_avg['baseline'][k] = group_avg['baseline'][k][1:]
                 group_gsr['baseline'][k] = group_gsr['baseline'][k][1:]
-        plot_group_violations(group_avg, group_gsr, show=show_plots)
+            for k in ('min', 'avg', 'max'):
+                group_eff['baseline'][k] = group_eff['baseline'][k][1:]
+                group_act['baseline'][k] = group_act['baseline'][k][1:]
+                group_sca['baseline'][k] = group_sca['baseline'][k][1:]
+                group_pra['baseline'][k] = group_pra['baseline'][k][1:]
+                group_prs['baseline'][k] = group_prs['baseline'][k][1:]
+        plot_group_violations(
+            group_avg, group_gsr, group_eff, 
+            group_act, group_sca, group_pra, group_prs,
+            show=show_plots
+        )
 
         exit()
     else:
