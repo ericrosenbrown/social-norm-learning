@@ -26,6 +26,7 @@ class Environment:
 
         self.SCALAR_FEEDBACK = 100
         self.ACTION_FEEDBACK = 200
+        self.NO_FEEDBACK = 300
 
     def flattened_sas_transitions(self):
         """

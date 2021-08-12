@@ -261,6 +261,117 @@ class ComputationGraph:
         choice = np.argmax(action_prob)
         return choice, copy.deepcopy(pi[r*ncols+c].cpu().detach().numpy())
 
+    def request_feedback(self, cur_r, cur_c, force=True):
+        """
+        Uses heuristics to determine whether or not to request feedback
+        from the human.
+
+        Current heuristics: number of violations, goal success rate,
+        "have I recieved feedback for this state?"
+
+        Stochastic Policy values
+        """
+        if force:
+            return force
+
+        nrows, ncols = self.env.world.shape
+        acts = self.env.actions
+        grid_map = self.env.world
+
+        def plan(rs, cs, pi, can_reach, steps, max_steps):
+            r, c = rs, cs
+            success = 0.0
+            violations = 0
+            while steps < max_steps:
+                if grid_map[r][c] == 4 or can_reach[r*ncols + c] > 0.5:
+                    success = 1.0
+                    break
+                maxprob = max(pi[r*ncols+c, :])
+                a = 6
+                for ana in range(5):
+                    if pi[r*ncols+c, ana] == maxprob: a = ana
+                r += acts[a][0]
+                c += acts[a][1]
+                steps += 1
+                if grid_map[r][c] in (1,2,3):
+                    violations += 1
+            return success, violations
+
+        def trajSuccess(rs, cs, pi):
+            """
+            Computes goal success of a trajectory
+            """
+            success = np.zeros(nrows*ncols)
+            goal, violations = plan(rs, cs, pi, success, 0, nrows*ncols)
+            return goal, violations
+
+        def goalSuccess(pi):
+            """
+            For every possible state, does planning with
+            the current policy lead to the goal state?
+            """
+            success = np.zeros(nrows*ncols)
+            for i in range(nrows):
+                for j in range(ncols):
+                    success[i*ncols + j], _ = plan(i, j, pi, success, 0, nrows*ncols)
+            return np.mean(success)
+
+        def policyViolations(pi, do_print=True):
+            violation_map = np.zeros((nrows, ncols))
+            iteration_map = np.zeros((nrows, ncols))
+            for i in range(nrows):
+                for j in range(ncols):
+                    grid = []
+                    for r in range(nrows):
+                        line = []
+                        for c in range(ncols):
+                            line += [6]
+                        grid += [line]
+                    it, viol = stateViolations(grid, pi, i, j)
+                    violation_map[i][j] = viol
+                    iteration_map[i][j] = it
+            if do_print:
+                print("Policy Violation Map:")
+                print(violation_map)
+                print("Iteration Map:")
+                print(iteration_map)
+                print("Average Policy Violation Count: " + str(np.mean(violation_map)))
+                # print("Standard Deviation Violation Count: " + str(round(np.std(violation_map), 3)))
+                print("Average Iteration Count: " + str(np.mean(iteration_map)))
+                # print("Standard Deviation Iteration Count: " + str(round(np.std(iteration_map), 3)))
+            return iteration_map, violation_map
+            # returns number of violations in a state
+
+        def stateViolations(grid, pi, r, c):
+            if grid[r][c] != 6: return (0, 0)
+            maxprob = max(pi[r*ncols+c, :])
+            a = 6
+            for ana in range(5):
+                if pi[r*ncols+c, ana] == maxprob: a = ana
+            grid[r][c] = a
+            r += acts[a][0]
+            c += acts[a][1]
+            it, viol = stateViolations(grid, pi, r, c)
+            if grid[r][c] < 4:
+                it += 1
+            tile_type = grid_map[r][c]
+            if tile_type == 1 or tile_type == 2 or tile_type == 3:
+                viol += 1
+            if tile_type == 0 and a == 4:
+                viol += 1 ## Violation by staying in the 0 zone
+            return (it, viol)
+
+        ## Compute Heuristics for making the decisions
+        pi, Q = cg.forward()
+        #success_rate = goalSuccess(pi)
+        #iters, viols = policyViolations(pi)
+        success_rate, viols = trajSuccess(cur_r, cur_c, pi)
+
+        if success_rate < 1.0 or np.mean(viols) > 0.02:
+            return True
+        else:
+            return False
+
 Transition = namedtuple("Transition", "t reward_estimate state action policy feedback_type feedback_value")
 
 class TrialBuffer:
@@ -423,7 +534,7 @@ class GridWorldRewardModel:
         corr = torch.clamp(corr, -1.0, 1.0)
         return torch.sqrt((1.0-corr)/2.0)
 
-def train(episodes, cg, prepop_trial_data=None):
+def train(episodes, cg, prepop_trial_data=None, force_feedback=True):
     """
     Train the agent's estimate of the reward function
     """
@@ -445,6 +556,7 @@ def train(episodes, cg, prepop_trial_data=None):
         trial_data = Trial((r,c), g, cg.current_reward_estimate(), cg.env.get_world())
         trial_data.register_feedback_type(cg.env.SCALAR_FEEDBACK)
         trial_data.register_feedback_type(cg.env.ACTION_FEEDBACK)
+        trial_data.register_feedback_type(cg.env.NO_FEEDBACK)
         trial_buffer.register_trial(trial_data)
 
         steps = 0
@@ -452,53 +564,61 @@ def train(episodes, cg, prepop_trial_data=None):
             ## Agent Plans an action given the current state, based on current policy
             action, local_policy = cg.chooseAction(r, c)
 
-            ## Tell the human what action the agent plans to take from the current state:
-            print(f"Agent is currently at ({r},{c}) on {cg.env.world[r,c]}")
-            cg.env.visualize_environment(r,c)
-            cg.env.inform_human(action)
+            if cg.request_feedback(r, c, force=force_feedback):
 
-            ## Get feedback for the planned action before actually taking it.
-            feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=True)
-            feedback = None
-            ## Classify the feedback
-            feedback_type = cg.env.classify_feedback(feedback_str)
-            if feedback_type == cg.env.SCALAR_FEEDBACK:
-                print("Scalar Feedback Provided")
-                scalar = cg.env.feedback_to_scalar(feedback_str)
-                feedback = scalar
-                pi, Q, loss, rk = cg.scalar_update(scalar, action, r, c)
-                print(f"Updated reward: {rk}")
+                ## Tell the human what action the agent plans to take from the current state:
+                print(f"Agent is currently at ({r},{c}) on {cg.env.world[r,c]}")
+                cg.env.visualize_environment(r,c)
+                cg.env.inform_human(action)
 
-            elif feedback_type == cg.env.ACTION_FEEDBACK:
-                print("Action Feedback Provided")
-                #Collect Trajectories
-                trajacts, trajcoords = cg.env.feedback_to_demonstration(feedback_str, r, c)
-                feedback = trajacts[0]
-                # trajacts, trajcoords = cg.env.acquire_human_demonstration(max_length=1)
+                ## Get feedback for the planned action before actually taking it.
+                feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=True)
+                feedback = None
+                ## Classify the feedback
+                feedback_type = cg.env.classify_feedback(feedback_str)
+                if feedback_type == cg.env.SCALAR_FEEDBACK:
+                    print("Scalar Feedback Provided")
+                    scalar = cg.env.feedback_to_scalar(feedback_str)
+                    feedback = scalar
+                    pi, Q, loss, rk = cg.scalar_update(scalar, action, r, c)
+                    print(f"Updated reward: {rk}")
+
+                elif feedback_type == cg.env.ACTION_FEEDBACK:
+                    print("Action Feedback Provided")
+                    #Collect Trajectories
+                    trajacts, trajcoords = cg.env.feedback_to_demonstration(feedback_str, r, c)
+                    feedback = trajacts[0]
+                    # trajacts, trajcoords = cg.env.acquire_human_demonstration(max_length=1)
+                else:
+                    print("Invalid feedback provided. Ignoring.")
+
+                trial_data.add_transition(
+                    steps, cg.current_reward_estimate(),
+                    (r,c), action, local_policy, feedback_type, feedback
+                )
+
+                if feedback_type == cg.env.ACTION_FEEDBACK:
+                    ## Update the reward function based on a batch of expert transitions from
+                    ## the feedback buffer
+                    batch_transitions = trial_buffer.sample_feedback_type(cg.env.ACTION_FEEDBACK, 100)
+                    ## Convert transitions to trajacts, trajcoords
+                    trajacts = [tr.feedback_value for tr in batch_transitions]
+                    trajcoords = [tr.state for tr in batch_transitions]
+                    pi, Q, loss, rk = cg.action_update(trajacts, trajcoords)
+
+                    ## Because the reward in the transition should be from AFTER feedback
+                    trial_data.update_last_transition_reward(cg.current_reward_estimate())
+
+                    cg.compute_expert_loss(pi, [feedback], [(r,c)])
+                    print(f"Updated reward: {rk}")
+                print(cg.recorded_losses)
             else:
-                print("Invalid feedback provided. Ignoring.")
+                trial_data.add_transition(
+                    steps, cg.current_reward_estimate(),
+                    (r,c), action, local_policy, cg.env.NO_FEEDBACK, None
+                )
 
-            trial_data.add_transition(
-                steps, cg.current_reward_estimate(),
-                (r,c), action, local_policy, feedback_type, feedback
-            )
-
-            if feedback_type == cg.env.ACTION_FEEDBACK:
-                ## Update the reward function based on a batch of expert transitions from
-                ## the feedback buffer
-                batch_transitions = trial_buffer.sample_feedback_type(cg.env.ACTION_FEEDBACK, 100)
-                ## Convert transitions to trajacts, trajcoords
-                trajacts = [tr.feedback_value for tr in batch_transitions]
-                trajcoords = [tr.state for tr in batch_transitions]
-                pi, Q, loss, rk = cg.action_update(trajacts, trajcoords)
-
-                ## Because the reward in the transition should be from AFTER feedback
-                trial_data.update_last_transition_reward(cg.current_reward_estimate())
-
-                cg.compute_expert_loss(pi, [feedback], [(r,c)])
-                print(f"Updated reward: {rk}")
-
-            print(cg.recorded_losses)
+            ## endif cg.request_feedback()
 
             ## Perform actual transition
             r,c = cg.env.step(r,c, action)
@@ -1160,6 +1280,8 @@ def parse_args():
         dest='prepopulate', action='store_true')
     parser.add_argument('--hide', help='hide plots, used for autosaving plots',
         dest='hide', action='store_true')
+    parser.add_argument('--noforce', help='Agent decides whether to request feedback',
+        dest='noforce', action='store_true')
     parser.add_argument('--inputs', help='paths to dataset files used for plotting', nargs='+')
     parser.add_argument('--groupings', help='keyword groupings', nargs='+')
     return parser.parse_args()
@@ -1207,18 +1329,22 @@ if __name__ == '__main__':
     cg = ComputationGraph(env)
     prepop_trial_data = None
     show_plots = True
+    force_feedback = True
     if args.hide:
         show_plots = False
         if args.dataset is None:
             print(f"Save prefix must be specified if hiding plots.")
             exit()
 
+    if args.noforce:
+        force_feedback = False
+
     if args.mode == "train":
         if args.prepopulate:
             print("Prepopulating trial data")
             prepop_trial_data = prepopulate(cg)
         episodes = 10
-        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data)
+        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data, force_feedback)
     elif args.mode == "test":
         if args.dataset is None:
             print(f"Dataset path must be specified.")
