@@ -132,13 +132,20 @@ class Environment:
     def random_start_state(self):
         """
         Select a random start state (chooses a random (r,c) that is a 0 colored square)
+        This is now a generator.
         """
         indices = np.flatnonzero(self.world == 0)
-        idx = np.random.choice(indices)
+        total = len(indices)
         _, ncols = self.world.shape
-        r = idx // ncols
-        c = idx %  ncols
-        return r, c
+        n = 0
+        while True:
+            if n == 0:
+                np.random.shuffle(indices)
+            idx = indices[n]
+            r = idx // ncols
+            c = idx %  ncols
+            yield r, c
+            n = (n + 1) % total
 
     def get_termination_states(self):
         """

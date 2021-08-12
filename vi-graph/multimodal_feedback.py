@@ -439,7 +439,7 @@ def train(episodes, cg, prepop_trial_data=None):
     for ep in range(episodes):
         ## Initialize episode:
         ## Choose a random start state
-        r, c = cg.env.random_start_state()
+        r, c = next(cg.env.random_start_state())
         g = cg.env.get_goal_state()
 
         trial_data = Trial((r,c), g, cg.current_reward_estimate(), cg.env.get_world())
@@ -1165,7 +1165,7 @@ def parse_args():
     return parser.parse_args()
 
 def prepopulate(cg):
-    r, c = cg.env.random_start_state()
+    r, c = next(cg.env.random_start_state())
     g = cg.env.get_goal_state()
     prepop_trial_data = Trial((r,c), g, cg.current_reward_estimate(), cg.env.get_world())
     prepop_trial_data.register_feedback_type(cg.env.SCALAR_FEEDBACK)
