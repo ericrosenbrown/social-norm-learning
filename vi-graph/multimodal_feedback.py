@@ -363,9 +363,9 @@ class ComputationGraph:
 
         ## Compute Heuristics for making the decisions
         pi, Q = cg.forward()
-        #success_rate = goalSuccess(pi)
-        #iters, viols = policyViolations(pi)
-        success_rate, viols = trajSuccess(cur_r, cur_c, pi)
+        success_rate = goalSuccess(pi)
+        iters, viols = policyViolations(pi)
+        #success_rate, viols = trajSuccess(cur_r, cur_c, pi)
 
         if success_rate < 1.0 or np.mean(viols) > 0.02:
             return True
@@ -462,6 +462,9 @@ class GridWorldRewardModel:
         self.env = env
         self.matmap = env.get_matmap()
         nrows, ncols, ncategories = self.matmap.shape
+        self.nrows = nrows
+        self.ncols = ncols
+        self.ncats = ncategories
         ## Grid map is a 2D representation of the GridWorld. Each element is the category
         self.grid_map = torch.tensor(env.world, dtype=int, requires_grad=False)
         ## Observation and action space is given by the flattened grid_world, it is 1D.
@@ -470,21 +473,30 @@ class GridWorldRewardModel:
         ## Represents possible actions
         self.actions = torch.arange(len(env.actions), dtype=int, requires_grad=False)
         ## R(s,a,s') = R(s,a,\phi(s')), feature based rewards vector
+        self.trans_dict = trans_dict
+        self.trans_tuple = trans_tuple
+
         self.feature_rewards = torch.tensor(reward_features, dtype=env.dtype, requires_grad=True)
+        self._forward()
+
+    def _forward(self):
         new_rk = self.feature_rewards.unsqueeze(0)
         new_rk = new_rk.unsqueeze(0)
-        new_rk = new_rk.expand(nrows, ncols, ncategories)
+        new_rk = new_rk.expand(self.nrows, self.ncols, self.ncats)
         ## Dot product to obtain the reward function applied to the matrix map
         rfk = torch.mul(self.matmap, new_rk)
         rfk = rfk.sum(axis=-1) ## 2D representation, i.e. recieve R((r,c)) reward for arriving at (r,c)
-        self.reward_model = rfk.view(nrows*ncols) ## flattened 1D view of the 2D grid
+        self.reward_model = rfk.view(self.nrows*self.ncols) ## flattened 1D view of the 2D grid
         ## Create 3D verasion of rewrd model: (s,a,s'). The above version corresponds with s'
-        self.full_reward_model = torch.zeros((nrows*ncols, len(env.actions), nrows*ncols))  ## R(s,a,s')
-        self.trans_dict = trans_dict
-        self.trans_tuple = trans_tuple
-        for s,a,sp in trans_tuple:
+        ## R(s,a,s')
+        self.full_reward_model = torch.zeros((self.nrows*self.ncols, len(env.actions), self.nrows*self.ncols))
+        for s,a,sp in self.trans_tuple:
             self.full_reward_model[s,a,sp] = self.reward_model[sp]
         self.canonicalized_reward = self.get_canonicalized_reward(self.trans_dict, self.trans_tuple)
+
+    def update(self, reward_features):
+        self.feature_rewards = torch.tensor(reward_features, dtype=env.dtype, requires_grad=True)
+        self._forward()
 
     def expected_reward_from_s(self, s, transitions):
         """
@@ -660,7 +672,8 @@ def compute_effort(data, cg):
     ## Distribution: Quantity of Action, Quantity of Scalar
     dist = {
         cg.env.ACTION_FEEDBACK: None,
-        cg.env.SCALAR_FEEDBACK: None
+        cg.env.SCALAR_FEEDBACK: None,
+        cg.env.NO_FEEDBACK: None
     }
     for k in dist:
         dist[k] = [trial.amount_of(k) for trial in data]
@@ -858,7 +871,8 @@ def min_mean_max_goal_success(rates):
 
 def plot_group_violations(
     group_violations, group_success, group_effort,
-    group_act, group_sca, group_pra, group_prs, show=True):
+    group_act, group_sca, group_non,
+    group_pra, group_prs, group_prn, show=True):
     """
     Plots violations as a function of trial. Specifically,
     plots the max, mean, and min of a trail, averaged over a set of seeds.
@@ -880,7 +894,8 @@ def plot_group_violations(
         'avg': '-.',
         'end': '-'
     }
-    color_list = ['blue','green', 'red', 'cyan', 'magenta', 'yellow', 'black']
+    #color_list = ['blue','green', 'red', 'cyan', 'magenta', 'yellow', 'black']
+    color_list = ['magenta','gold', 'green', 'blue', 'red', 'cyan', 'black']
     colors = {k:v for k,v in zip(group_violations, color_list)}
 
     print(group_violations)
@@ -1015,6 +1030,37 @@ def plot_group_violations(
         plt.show()
     else:
         plt.savefig("percent_scalars.per_trial.pdf", bbox_inches='tight')
+        plt.close()
+
+    ## Feedback Types per Trial
+    for grp, avgs in group_non.items():
+        x = [n+1 for n in range(len(avgs['min']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_effort')
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Num None')
+    plt.title('Quantity None')
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("no_feedback.per_trial.pdf", bbox_inches='tight')
+        plt.close()
+    ## Feedback Types per Trial
+    for grp, avgs in group_prn.items():
+        x = [n+1 for n in range(len(avgs['min']))]
+        for k in ('min', 'avg', 'max'):
+            plt.plot(x, avgs[k], linestyle=styles[k], color=colors[grp], label=grp+'_effort')
+        plt.fill_between(x, avgs['min'], avgs['max'], color=colors[grp], alpha=0.2)
+    plt.xlabel('Trial')
+    plt.ylabel('Pecent None')
+    plt.title('Percent No Feedback')
+    if show:
+        plt.legend()
+        plt.show()
+    else:
+        plt.savefig("percent_no_feedback.per_trial.pdf", bbox_inches='tight')
         plt.close()
 
     ## Violations per Total Effort
@@ -1467,8 +1513,10 @@ if __name__ == '__main__':
         group_eff = {grp:None for grp in args.groupings} ## Effort
         group_act = {grp:None for grp in args.groupings} ## Action Effort
         group_sca = {grp:None for grp in args.groupings} ## Scalar Effort
+        group_non = {grp:None for grp in args.groupings} ## None   Effort
         group_pra = {grp:None for grp in args.groupings} ## Percent Action
         group_prs = {grp:None for grp in args.groupings} ## Percent Scalar
+        group_prn = {grp:None for grp in args.groupings} ## Percent None
         group_num = {grp:0 for grp in args.groupings}
 
         for dataset in args.inputs:
@@ -1476,12 +1524,24 @@ if __name__ == '__main__':
                 print(f"Dataset path is not a file.")
                 exit()
             with open(dataset, 'rb') as f:
+                print(f"Loading... {dataset}")
                 all_training_data = pickle.load(f)
                 ## Check if we have the loss saved in the pickle file
                 try:
                     demonstration_losses = pickle.load(f)
                 except EOFError:
                     print("No demonstration losses in this dataset")
+            ## Fix for missing data
+            for t in all_training_data:
+                if hasattr(t, "feedback_indices"):
+                    if cg.env.NO_FEEDBACK not in t.feedback_indices:
+                        t.feedback_indices[cg.env.NO_FEEDBACK] = []
+                else:
+                    setattr(t, "feedback_indices", dict())
+                    t.feedback_indices[cg.env.NO_FEEDBACK] = []
+                    t.feedback_indices[cg.env.ACTION_FEEDBACK] = []
+                    t.feedback_indices[cg.env.SCALAR_FEEDBACK] = []
+
             all_violations, detailed_violations = compute_violations(all_training_data, cg)
             violations_dict = min_mean_max_violations(all_violations)
             goal_success_rates = compute_goal_success(all_training_data, cg)
@@ -1490,8 +1550,11 @@ if __name__ == '__main__':
             ## Percentage Action / Scalar
             num_action = np.array(effort_dist[cg.env.ACTION_FEEDBACK])
             num_scalar = np.array(effort_dist[cg.env.SCALAR_FEEDBACK])
-            per_action = num_action / (num_action + num_scalar)
-            per_scalar = num_scalar / (num_action + num_scalar)
+            num_none   = np.array(effort_dist[cg.env.NO_FEEDBACK])
+            total_num  = num_action + num_scalar + num_none
+            per_action = num_action / total_num
+            per_scalar = num_scalar / total_num
+            per_none   = num_none   / total_num
 
             ## Determine which group this dataset belongs to
             for grp, grp_avg in group_avg.items():
@@ -1515,6 +1578,11 @@ if __name__ == '__main__':
                             'avg': np.array(num_scalar),
                             'max': np.array(num_scalar)
                         }
+                        group_non[grp] = { 
+                            'min': np.array(num_none),
+                            'avg': np.array(num_none),
+                            'max': np.array(num_none)
+                        }
                         group_pra[grp] = {
                             'min': np.array(per_action),
                             'avg': np.array(per_action),
@@ -1524,6 +1592,11 @@ if __name__ == '__main__':
                             'min': np.array(per_scalar),
                             'avg': np.array(per_scalar),
                             'max': np.array(per_scalar)
+                        }
+                        group_prn[grp] = { 
+                            'min': np.array(per_none),
+                            'avg': np.array(per_none),
+                            'max': np.array(per_none)
                         }
                     else:
                         ## Update running averages
@@ -1536,6 +1609,7 @@ if __name__ == '__main__':
                             for idx, v in enumerate(group_gsr[grp][k]):
                                 group_gsr[grp][k][idx] = (v*(n-1) + goal_success_dict[k][idx])/n
                         ## Update group effort statistics: Update average effort per trial
+                        ## Trial effort includes only Action and Scalar feedback counts
                         for idx, v in enumerate(group_eff[grp]['avg']):
                             group_eff[grp]['avg'][idx] = (v*(n-1) + trial_efforts[idx])/n
                         for idx, v in enumerate(group_eff[grp]['min']):
@@ -1575,6 +1649,21 @@ if __name__ == '__main__':
                         for idx, v in enumerate(group_prs[grp]['max']):
                             group_prs[grp]['max'][idx] = max(v, per_scalar[idx])
 
+                        ## Update Effort Distribution: number of no feedback per trial
+                        for idx, v in enumerate(group_non[grp]['avg']):
+                            group_non[grp]['avg'][idx] = (v*(n-1) + effort_dist[cg.env.NO_FEEDBACK][idx])/n
+                        for idx, v in enumerate(group_non[grp]['min']):
+                            group_non[grp]['min'][idx] = min(v, effort_dist[cg.env.NO_FEEDBACK][idx])
+                        for idx, v in enumerate(group_non[grp]['max']):
+                            group_non[grp]['max'][idx] = max(v, effort_dist[cg.env.NO_FEEDBACK][idx])
+
+                        ## Update Effort Distribution: number of no feedback per trial
+                        for idx, v in enumerate(group_prn[grp]['avg']):
+                            group_prn[grp]['avg'][idx] = (v*(n-1) + per_none[idx])/n
+                        for idx, v in enumerate(group_prn[grp]['min']):
+                            group_prn[grp]['min'][idx] = min(v, per_none[idx])
+                        for idx, v in enumerate(group_prn[grp]['max']):
+                            group_prn[grp]['max'][idx] = max(v, per_none[idx])
         ## Adjust the baseline (remove the first episode)
         if 'baseline' in group_avg:
             for k in ('min', 'max', 'end', 'ini', 'len'):
@@ -1584,11 +1673,14 @@ if __name__ == '__main__':
                 group_eff['baseline'][k] = group_eff['baseline'][k][1:]
                 group_act['baseline'][k] = group_act['baseline'][k][1:]
                 group_sca['baseline'][k] = group_sca['baseline'][k][1:]
+                group_non['baseline'][k] = group_sca['baseline'][k][1:]
                 group_pra['baseline'][k] = group_pra['baseline'][k][1:]
                 group_prs['baseline'][k] = group_prs['baseline'][k][1:]
+                group_prn['baseline'][k] = group_prs['baseline'][k][1:]
         plot_group_violations(
             group_avg, group_gsr, group_eff, 
-            group_act, group_sca, group_pra, group_prs,
+            group_act, group_sca, group_non,
+            group_pra, group_prs, group_prn,
             show=show_plots
         )
 
