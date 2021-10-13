@@ -3,6 +3,7 @@ import copy
 from .world import Worlds
 import torch
 import numpy as np
+from computation_graph import ComputationGraph
 
 class Environment:
 
@@ -27,6 +28,11 @@ class Environment:
         self.SCALAR_FEEDBACK = 100
         self.ACTION_FEEDBACK = 200
         self.NO_FEEDBACK = 300
+
+        self.need_simulated_evaluative_feedback = True
+        self.sim_cg = None
+        self.sim_advantage = None
+        self.rng = np.random.default_rng()
 
     def flattened_sas_transitions(self):
         """
@@ -76,7 +82,7 @@ class Environment:
         """
         pass
 
-    def acquire_feedback(self, action_idx, r, c, source_is_human=True):
+    def acquire_feedback(self, action_idx, r, c, source_is_human=True, feedback_policy_type="action"):
         """
         Acquires feedback from a source
         """
@@ -90,7 +96,7 @@ class Environment:
                 print("Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2")
                 feedback_str = input("Human Feedback: ")
             else:
-                feedback_str = self.feedback_source(action_idx, r, c)
+                feedback_str = self.feedback_source(action_idx, r, c, feedback_policy_type)
             valid = False
         return feedback_str
 
@@ -115,20 +121,71 @@ class Environment:
         """
         return [self.action_feedback_map[feedback]], [(r,c)]
 
-    def feedback_source(self, action, r, c):
+    def feedback_source(self, action, r, c, feedback_policy_type):
         """
         A simulator for providing feedback
         """
         ## TODO: Implement a feedback simulator to simulate giving feedback
         ## NOTE: For now, we've implemented optimal feedback for each grid location
-        feedback_map = (
-            ("s","s","a","d","s","s","s","s","d","stay"),
-            ("s","s","s","d","d","d","d","d","d","w"),
-            ("d","d","d","d","d","d","d","d","d","w"),
-            ("w","w","w","w","w","w","w","d","d","w"),
-            ("w","w","a","a","a","w","w","d","d","w")
-        )
-        return feedback_map[r][c]
+        if feedback_policy_type == "action":
+            ## Action only
+            feedback_map = (
+                ("s","s","a","d","s","s","s","s","d","stay"),
+                ("s","s","s","d","d","d","d","d","d","w"),
+                ("d","d","d","d","d","d","d","d","d","w"),
+                ("w","w","w","w","w","w","w","d","d","w"),
+                ("w","w","a","a","a","w","w","d","d","w")
+            )
+            return feedback_map[r][c]
+
+        if feedback_policy_type == "evaluative":
+            if self.sim_advantage is None or self.need_simulated_evaluative_feedback:
+                ## We haven't computed the simulated advantage values yet,
+                ## so compute those values using a prespecified reward function
+                self.sim_cg = ComputationGraph(self)
+                ## Specify a reward function to use
+                DEFAULT_REWARD = [0, -1, -1, -1,  1]
+                r = DEFAULT_REWARD
+                self.sim_cg.set_reward_estimate(r)
+                pi, Q, V = self.sim_cg.forward()
+                ## Q is (nrows*ncols) x (nacts) (2D)
+                ## V is (nrows*ncols) (1D)
+                V = V.unsqueeze(0).T.expand(Q.shape)
+                ## Advantage
+                A = (Q - V).cpu().detach().numpy() ## 2D nrows*ncols x nacts
+                self.need_simulated_evaluative_feedback = False
+                self.sim_advantage = A
+                self.sim_cg = None
+
+            ## Consider just advantage mapped onto -2,-1,+0,+1,+2 via ranking.
+            ## NOTE: Maps to -2, -1, 0, 1, 2 evaluative ranking that we have been using for experiments.
+            ## If we don't want to do this, then just return the raw advantage
+            ## To return raw advantage, set map_to_ranked_advantage_scale to False
+            map_to_ranked_advantage_scale = True
+            if map_to_ranked_evaluative_scale:
+                mapped_advantage = self.sim_advantage.argsort() - 2
+                return str(mapped_advantage[r*nrows + c][action])
+            else:
+                ## TODO: Support raw advantage values (for arbitrary scaling)
+                ## Alternatively, we should also be able to handle direct advantage feedback
+                ## Scalar only
+                ## Return advantage value
+                ## Assumes a reward function that yields correct optimal behavior
+                ## However, what's interesting that is that depending on the scale,
+                ## the advantage values will be different! So maybe normalize the values.
+                raw_advantage = self.sim_advantage[r*nrows+c][action]
+                ## NOTE: This is not yet supported
+                raise ValueError("Raw advantage support not yet implemented.")
+                return str(raw_advantage)
+
+        if feedback_policy_type == "mixed":
+            ### Create a static mixture of the action and evaluative feedback
+            ### Create a dynamic mixture of action and evaluative feedback (distribution changes over time)
+            ### Create a mixture dependent on the history of the state, action, feedback encountered
+            if self.rng.uniform() < 0.5:
+                return self.feedback_source(action, r, c, "action")
+            else:
+                return self.feedback_source(action, r, c, "evaluative")
 
     def random_start_state(self):
         """

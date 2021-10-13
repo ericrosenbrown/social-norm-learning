@@ -14,548 +14,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+from computation_graph import ComputationGraph
+from reward_model import GridWorldRewardModel
+from feedback_buffer import Transition, TrialBuffer, Trial
 
-class ComputationGraph:
-    class lossdict(dict):
-        def __init__(self, *args, **kw):
-            super().__init__(*args, **kw)
 
-        def set_decode(self, mapping):
-            self.action_mapping = mapping
-
-        def __str__(self):
-            parts = []
-            for k, v in self.items():
-                parts.append('{0}: {1} -> {2}'.format(k[0], self.action_mapping[k[1]], str(v[-1])))
-            return '\n'.join(parts)
-
-    def __init__(self, env):
-        """
-        Initialize the computation graph
-
-        The aim of the computation graph is to learn
-        R(s,a,s')
-        """
-        ## Environment consist of the grid world and categories
-        self.env = env
-        self.dtype = env.dtype
-        ## Category to location map
-        self.matmap = env.get_matmap()
-        ## Transition matrix P
-        self.mattrans = env.get_mattrans()
-        ## Learning rate alpha
-        self.learning_rate = 0.001
-        ## Discount factor
-        self.gamma = 0.90
-        ## Boltzmann temperature for Q softmax
-        self.beta = 10.0
-        ## Horizon - number of timesteps to simulate into the future from the current point
-        self.horizon = 50
-        ## Softmax Function, along dimension 1
-        self.softmax = torch.nn.Softmax(dim=1)
-        ## Number of gradient updates to compute
-        self.num_updates = 100
-        
-        #initial random guess on r
-        #r starts as [n] categories. we will inflate this to [rows,cols,n]
-        # to multiple with matmap and sum across category
-        #r = np.random.rand(5)*2-1
-        ## Reward function as a function of category
-        ## NOTE: Initialize reward to a constant value because a policy can
-        # be the optimal under any constant reward function. Therefore,
-        # initialize  r to 0 everywhere
-        r = np.zeros(env.ncategories)
-        self.rk = torch.tensor(r, dtype=self.dtype, requires_grad=True)
-
-        ## Losses are recorded state by state for actions
-        self.recorded_losses = ComputationGraph.lossdict()
-        self.recorded_losses.set_decode({0: 'U', 1: 'R', 2: 'D', 3: 'L', 4: 'S'})
-
-    def set_reward_estimate(self, r):
-        self.rk = torch.tensor(r, dtype=self.dtype, requires_grad=True)
-
-    def current_reward_estimate(self):
-        return copy.deepcopy(self.rk.cpu().detach().numpy())
-
-    def forward(self):
-        """
-        This is the planning function. For the agent's estimation of the reward function,
-        what are the estimated Q values for taking each action, and what is the corresponding stochastic policy?
-        The stochastic policy is computed using the softmax over the Q values.
-        """
-        ## Expand the reward function to map onto the matrix map
-        new_rk = self.rk.unsqueeze(0)
-        new_rk = new_rk.unsqueeze(0)
-        nrows, ncols, ncategories = self.matmap.shape
-        new_rk = new_rk.expand(nrows, ncols, ncategories)
-        ## Dot product to obtain the reward function applied to the matrix map
-        rfk = torch.mul(self.matmap, new_rk)
-        rfk = rfk.sum(axis=-1)
-        rffk = rfk.view(nrows*ncols) ## 1D view of the 2D grid
-        #initialize the value function to be the reward function, required_grad should be false
-        v = rffk.detach().clone()
-
-        #inflate v to be able to multiply mattrans
-        v = v.unsqueeze(0)
-        v = v.expand(nrows*ncols,nrows*ncols)
-
-        ## NOTE: Does the concept of a goal exist in this case? Agent isn't aware of the goal state
-        ##       and the environment doesn't explicitly specify the goal state
-        ## NOTE: Do rollouts to a specified horizon
-        for _ in range(self.horizon):
-            ## Compute Q values
-            ## This forces Q to be (nrows*ncols x nacts)
-            Q = torch.mul(self.mattrans, v).sum(dim=-1).T
-            pi = self.softmax(self.beta * Q)
-            next_Q = (Q * pi).sum(dim=1)
-            v = rffk + self.gamma * next_Q
-        return pi, Q
-
-    def compute_expert_loss(self, pi, trajacts, trajcoords):
-        nrows, ncols = self.env.world.shape
-        loss = 0
-
-        ## Update the losses for all the demonstrations that have been seen so far
-        for sa in self.recorded_losses:
-            state, acti = sa
-            example_loss = -torch.log(pi[state[0]*ncols+state[1]][acti])
-            self.recorded_losses[sa].append(example_loss.cpu().detach().numpy())
-
-        ## Update the new loss if applicable
-        for i in range(len(trajacts)):
-            acti = trajacts[i]
-            state = trajcoords[i]
-            loss += -torch.log(pi[state[0]*ncols+state[1]][acti])
-
-            if (state, acti) not in self.recorded_losses:
-                self.recorded_losses[(state,acti)] = [loss.cpu().detach().numpy()]
-        return loss
-
-    def action_loss(self, pi, Q, trajacts, trajcoords):
-        nrows, ncols = self.env.world.shape
-        loss = 0
-        for i in range(len(trajacts)):
-            acti = trajacts[i]
-            state = trajcoords[i]
-            loss += -torch.log(pi[state[0]*ncols+state[1]][acti])
-        loss.backward()
-        return loss
-
-    def action_update(self, trajacts, trajcoords):
-        print("LEARNING!***************")
-        piout, Qout, loss = None, None, None
-        for k in range(self.num_updates):
-            piout, Qout = self.forward()
-            loss = self.action_loss(piout, Qout, trajacts, trajcoords)
-            with torch.no_grad():
-                grads_value = self.rk.grad
-                self.rk -= self.learning_rate * grads_value
-                self.rk.grad.zero_()
-        return piout, Qout, loss, self.rk
-
-    def scalar_loss(self, pi, Q, trajacts, trajcoords, scalar):
-        nrows, ncols = self.env.world.shape
-        loss = 0
-        for i in range(len(trajacts)):
-            acti = trajacts[i]
-            state = trajcoords[i]
-            loss += -torch.log(pi[state[0]*ncols+state[1]][acti])
-        loss.backward()
-        return loss
-
-    def scalar_scale(self, pi, action, r,c, scalar):
-        def clip(v, nmin, nmax):
-            if v < nmin: v = nmin
-            if v > nmax-1: v = nmax-1
-            return(v)
-
-        nrows, ncols = self.env.world.shape
-        scale = clip(scalar / pi[r*ncols + c][action].item(), -1, 2)
-        return scale
-
-    def scalar_update(self, scalar, action, r, c):
-        print("LEARNING!***************")
-        piout, Qout, loss = None, None, None
-        ## NOTE: Scalar feedback performs a SINGLE on-policy update
-        piout, Qout = self.forward()
-        loss = self.scalar_loss(piout, Qout, [action], [(r,c)], scalar)
-        scale = self.scalar_scale(piout, action, r, c, scalar)
-        with torch.no_grad():
-            grads_value = self.rk.grad
-            self.rk -= (self.learning_rate * grads_value) * scale
-            self.rk.grad.zero_()
-        return piout, Qout, loss, self.rk
-
-    ## TODO: Finish findpol and plotpolicy
-
-    def plotpolicy(self, pi):
-        def findpol(grid,pi,r,c, iteration):
-            ## Commented out to allow agent to roam anywhere
-            #if grid[r][c] != 6: return
-            iteration += 1
-            if grid[r][c] == 10: return
-            maxprob = max(pi[r*ncols+c,:])
-            a = 6
-            for ana in range(5):
-                if pi[r*ncols+c, ana] == maxprob: a = ana
-            grid[r][c] = a
-            r += self.env.actions[a][0]
-            c += self.env.actions[a][1]
-            if iteration < 989:
-                findpol(grid,pi,r,c,iteration)
-            else:
-                print(f'Exceeded iterations')
-                return
-
-        startr, startc = self.env.viz_start[0], self.env.viz_start[1]
-        nrows, ncols = self.env.world.shape
-        grid = []
-        iteration = 0
-        for r in range(nrows):
-            line = []
-            for c in range(ncols):
-                line += [self.env.world[r][c]+6]
-            grid += [line]
-        findpol(grid,pi,startr,startc, iteration)
-        for r in range(nrows):
-            line = ""
-            for c in range(ncols):
-                line += '^>v<x?01234'[grid[r][c]]
-            print(line)
-
-    def chooseAction(self, r, c):
-        pi, Q = self.forward()
-        epsilon = 0.25
-        nrows, ncols, ncategories = self.matmap.shape
-        action_prob = pi[r*ncols+c].cpu().detach().numpy()
-        print("Original Action Probabilities (Up, Right, Down, Left, Stay): ")
-        print(np.round(action_prob, 3))
-        ## Filter out invalid actions
-        if r == 0:
-            action_prob[0] = 0
-        if c == ncols - 1:
-            action_prob[1] = 0
-        if r == nrows - 1:
-            action_prob[2] = 0
-        if c == 0:
-            action_prob[3] = 0
-
-        ## Renormalize probabilities
-        action_prob = action_prob / np.sum(action_prob)
-        print("Action Probabilities (Up, Right, Down, Left, Stay): ")
-        print(np.round(action_prob, 3))
-
-        ## Epsilon-greedy (currently disabled)
-        # r = random.uniform(0, 1)
-        # print("Random Number: " + str(r))
-
-        # if r < epsilon:
-        #   permitable_actions = np.nonzero(action_prob)[0]
-        #   choice = np.random.choice(permitable_actions, 1)[0]
-        #   print("Picking a random action...")
-        #   print(choice)
-        #   return choice
-        # print("Picking from probabilities...")
-        # choice = np.random.choice(5, 1, p=action_prob)[0]
-        # print(choice)
-        choice = np.argmax(action_prob)
-        return choice, copy.deepcopy(pi[r*ncols+c].cpu().detach().numpy())
-
-    def request_feedback(self, cur_r, cur_c, force=True):
-        """
-        Uses heuristics to determine whether or not to request feedback
-        from the human.
-
-        Current heuristics: number of violations, goal success rate,
-        "have I recieved feedback for this state?"
-
-        Stochastic Policy values
-        """
-        if force:
-            return force
-
-        nrows, ncols = self.env.world.shape
-        acts = self.env.actions
-        grid_map = self.env.world
-
-        def plan(rs, cs, pi, can_reach, steps, max_steps):
-            r, c = rs, cs
-            success = 0.0
-            violations = 0
-            while steps < max_steps:
-                if grid_map[r][c] == 4 or can_reach[r*ncols + c] > 0.5:
-                    success = 1.0
-                    break
-                maxprob = max(pi[r*ncols+c, :])
-                a = 6
-                for ana in range(5):
-                    if pi[r*ncols+c, ana] == maxprob: a = ana
-                r += acts[a][0]
-                c += acts[a][1]
-                steps += 1
-                if grid_map[r][c] in (1,2,3):
-                    violations += 1
-            return success, violations
-
-        def trajSuccess(rs, cs, pi):
-            """
-            Computes goal success of a trajectory
-            """
-            success = np.zeros(nrows*ncols)
-            goal, violations = plan(rs, cs, pi, success, 0, nrows*ncols)
-            return goal, violations
-
-        def goalSuccess(pi):
-            """
-            For every possible state, does planning with
-            the current policy lead to the goal state?
-            """
-            success = np.zeros(nrows*ncols)
-            for i in range(nrows):
-                for j in range(ncols):
-                    success[i*ncols + j], _ = plan(i, j, pi, success, 0, nrows*ncols)
-            return np.mean(success)
-
-        def policyViolations(pi, do_print=True):
-            violation_map = np.zeros((nrows, ncols))
-            iteration_map = np.zeros((nrows, ncols))
-            for i in range(nrows):
-                for j in range(ncols):
-                    grid = []
-                    for r in range(nrows):
-                        line = []
-                        for c in range(ncols):
-                            line += [6]
-                        grid += [line]
-                    it, viol = stateViolations(grid, pi, i, j)
-                    violation_map[i][j] = viol
-                    iteration_map[i][j] = it
-            if do_print:
-                print("Policy Violation Map:")
-                print(violation_map)
-                print("Iteration Map:")
-                print(iteration_map)
-                print("Average Policy Violation Count: " + str(np.mean(violation_map)))
-                # print("Standard Deviation Violation Count: " + str(round(np.std(violation_map), 3)))
-                print("Average Iteration Count: " + str(np.mean(iteration_map)))
-                # print("Standard Deviation Iteration Count: " + str(round(np.std(iteration_map), 3)))
-            return iteration_map, violation_map
-            # returns number of violations in a state
-
-        def stateViolations(grid, pi, r, c):
-            if grid[r][c] != 6: return (0, 0)
-            maxprob = max(pi[r*ncols+c, :])
-            a = 6
-            for ana in range(5):
-                if pi[r*ncols+c, ana] == maxprob: a = ana
-            grid[r][c] = a
-            r += acts[a][0]
-            c += acts[a][1]
-            it, viol = stateViolations(grid, pi, r, c)
-            if grid[r][c] < 4:
-                it += 1
-            tile_type = grid_map[r][c]
-            if tile_type == 1 or tile_type == 2 or tile_type == 3:
-                viol += 1
-            if tile_type == 0 and a == 4:
-                viol += 1 ## Violation by staying in the 0 zone
-            return (it, viol)
-
-        ## Compute Heuristics for making the decisions
-        pi, Q = cg.forward()
-        success_rate = goalSuccess(pi)
-        iters, viols = policyViolations(pi)
-        #success_rate, viols = trajSuccess(cur_r, cur_c, pi)
-
-        if success_rate < 1.0 or np.mean(viols) > 0.02:
-            return True
-        else:
-            return False
-
-Transition = namedtuple("Transition", "t reward_estimate state action policy feedback_type feedback_value")
-
-class TrialBuffer:
-    def __init__(self):
-        self.all_trials = []
-        self.feedback_statistics = {}
-
-    def register_trial(self, trial):
-        self.all_trials.append(trial)
-        for k,v in trial.feedback_indices.items():
-            if k not in self.feedback_statistics:
-                self.feedback_statistics[k] = []
-
-    def update_statistics(self):
-        trial = self.all_trials[-1]
-        for feedback_type, indices in trial.feedback_indices.items():
-            self.feedback_statistics[feedback_type].append(len(indices))
-
-    def sample_feedback_type(self, feedback_type, batch_size):
-        ## How many samples are in our buffer?
-        total_current = len(self.all_trials[-1].feedback_indices[feedback_type])
-        total_feedback = [x for x in self.feedback_statistics[feedback_type]]
-        total_feedback.append(total_current)
-        total = sum(total_feedback)
-        selection = None
-        if batch_size < total:
-            selection = random.sample(range(total), batch_size)
-        else:
-            selection = [x for x in range(total)]
-
-        ## Sort in the indices for iteration
-        selection.sort()
-        transitions = [None for x in range(len(selection))]
-        trial_idx = 0
-        selection_idx = 0
-        prev_accum = 0
-        for x in accumulate(total_feedback):
-            while selection_idx < len(selection) and selection[selection_idx] < x:
-                idx = selection[selection_idx] - prev_accum
-                try:
-                    data_idx = self.all_trials[trial_idx].feedback_indices[feedback_type][idx]
-                except IndexError:
-                    print(f'Selection: {selection}')
-                    print(f'x: {x}, selection[selection_idx]={selection[selection_idx]}')
-                    print(f'prev_accum: {prev_accum}, idx={idx}')
-                    print(f'trial_idx: {trial_idx}')
-                    print(f'total_feedback: {total_feedback}')
-                transitions[selection_idx] = self.all_trials[trial_idx].transitions[data_idx]
-                selection_idx += 1
-            prev_accum = x
-            trial_idx += 1
-        return transitions
-
-class Trial:
-    def __init__(self, initial_state, goal, reward_estimate, grid_map):
-        self.initial_state = initial_state
-        self.goal = goal
-        self.reward_estimate = reward_estimate
-        self.grid_map = grid_map
-        self.transitions = []
-        self.feedback_indices = dict()
-
-    def amount_of(self, feedback_type):
-        if feedback_type not in self.feedback_indices:
-            return 0
-        else:
-            return len(self.feedback_indices[feedback_type])
-
-    def get_effort(self, feedback_types):
-        return sum(len(self.feedback_indices[k]) for k in feedback_types)
-
-    def register_feedback_type(self, feedback_type):
-        self.feedback_indices[feedback_type] = []
-
-    def add_transition(self, t, r, s, a, p, ft, fv):
-        self.transitions.append(Transition(t, r, s, a, p, ft, fv))
-        if ft in self.feedback_indices:
-            idx = len(self.transitions) - 1
-            self.feedback_indices[ft].append(idx)
-
-    def update_last_transition_reward(self, r):
-        last_transition = self.transitions[-1]
-        self.transitions[-1] = Transition(*((last_transition[0], r) + last_transition[2:]))
-
-class GridWorldRewardModel:
-    def __init__(self, reward_features, env, gamma, trans_dict, trans_tuple):
-        self.gamma = gamma
-        self.env = env
-        self.matmap = env.get_matmap()
-        nrows, ncols, ncategories = self.matmap.shape
-        self.nrows = nrows
-        self.ncols = ncols
-        self.ncats = ncategories
-        ## Grid map is a 2D representation of the GridWorld. Each element is the category
-        self.grid_map = torch.tensor(env.world, dtype=int, requires_grad=False)
-        ## Observation and action space is given by the flattened grid_world, it is 1D.
-        self.obs_space = torch.arange(nrows*ncols, dtype=int)
-        self.act_space = torch.arange(len(env.actions), dtype=int)
-        ## Represents possible actions
-        self.actions = torch.arange(len(env.actions), dtype=int, requires_grad=False)
-        ## R(s,a,s') = R(s,a,\phi(s')), feature based rewards vector
-        self.trans_dict = trans_dict
-        self.trans_tuple = trans_tuple
-
-        self.feature_rewards = torch.tensor(reward_features, dtype=env.dtype, requires_grad=True)
-        self._forward()
-
-    def _forward(self):
-        new_rk = self.feature_rewards.unsqueeze(0)
-        new_rk = new_rk.unsqueeze(0)
-        new_rk = new_rk.expand(self.nrows, self.ncols, self.ncats)
-        ## Dot product to obtain the reward function applied to the matrix map
-        rfk = torch.mul(self.matmap, new_rk)
-        rfk = rfk.sum(axis=-1) ## 2D representation, i.e. recieve R((r,c)) reward for arriving at (r,c)
-        self.reward_model = rfk.view(self.nrows*self.ncols) ## flattened 1D view of the 2D grid
-        ## Create 3D verasion of rewrd model: (s,a,s'). The above version corresponds with s'
-        ## R(s,a,s')
-        self.full_reward_model = torch.zeros((self.nrows*self.ncols, len(env.actions), self.nrows*self.ncols))
-        for s,a,sp in self.trans_tuple:
-            self.full_reward_model[s,a,sp] = self.reward_model[sp]
-        self.canonicalized_reward = self.get_canonicalized_reward(self.trans_dict, self.trans_tuple)
-
-    def update(self, reward_features):
-        self.feature_rewards = torch.tensor(reward_features, dtype=env.dtype, requires_grad=True)
-        self._forward()
-
-    def expected_reward_from_s(self, s, transitions):
-        """
-        Computes the mean reward exactly starting in state s, averaged
-        over the possible (a,s') allowed from state s
-        (s,a,s') are in terms of 1D representation, i.e. s, s' \in {0,...,|S|-1}
-
-        transitions is a {s: {a: s'}} dict
-        """
-        return torch.mean(self.reward_model[[sp for a, sp in transitions[s].items()]])
-
-    def expected_reward_over_sas(self, transitions):
-        """
-        transitions is a tuple( tuple(s,a,s'), ... )
-        """
-        ## NOTE: We need to make a 1D tensor that gathers from specific indices represented by sasp
-        ## This can be done with the 1D reward model
-        return torch.mean(self.reward_model[[sasp[2] for sasp in transitions]])
-
-    def get_canonicalized_reward(self, transitions_dict, transitions_tuple):
-        canonicalized = torch.clone(self.full_reward_model) ## R(s,a,s')
-        ## Below, used to compute R(s',A,S') and R(s,A,S')
-        mean_from_state = torch.tensor(
-            [self.expected_reward_from_s(state, transitions_dict) for state in range(self.env.world.size)]
-        )
-
-        ## Compute E[R(S,A,S')]
-        mean_reward = torch.sum(self.full_reward_model)/len(transitions_tuple)
-        for s,a,sp in transitions_tuple:
-            canonicalized[s,a,sp] += (self.gamma*mean_from_state[sp] - mean_from_state[s] - self.gamma*mean_reward)
-        return canonicalized
-
-    def epic_distance(self, other, samples):
-        """
-        sample is (s,a,s') tuples
-        """
-        shape = self.canonicalized_reward.shape
-        S = shape[0]
-        A = shape[1]
-        ra = torch.flatten(self.canonicalized_reward)
-        rb = torch.flatten(other.canonicalized_reward)
-
-        idx = (lambda s,a,sp: s*A*S + a*S + sp)
-        ## Sample indices
-        indices = np.array([idx(s,a,sp) for s,a,sp in samples])
-        return self.pearson_distance(ra[indices], rb[indices])
-
-    def pearson_distance(self, ra, rb):
-        mu_a = torch.mean(ra)
-        mu_b = torch.mean(rb)
-        var_a = torch.mean(torch.square(ra - mu_a))
-        var_b = torch.mean(torch.square(rb - mu_b))
-
-        cov = torch.mean((ra - mu_a) * (rb - mu_b))
-        corr = cov / torch.sqrt(var_a * var_b)
-        corr = torch.clamp(corr, -1.0, 1.0)
-        return torch.sqrt((1.0-corr)/2.0)
-
-def train(episodes, cg, prepop_trial_data=None, force_feedback=True):
+def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_human=True, feedback_policy_type="human"):
     """
     Train the agent's estimate of the reward function
     """
@@ -593,7 +57,8 @@ def train(episodes, cg, prepop_trial_data=None, force_feedback=True):
                 cg.env.inform_human(action)
 
                 ## Get feedback for the planned action before actually taking it.
-                feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=True)
+                ##feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=True, feedback_policy_type="human")
+                feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=source_is_human, feedback_policy_type=feedback_policy_type)
                 feedback = None
                 ## Classify the feedback
                 feedback_type = cg.env.classify_feedback(feedback_str)
@@ -677,6 +142,16 @@ def compute_effort(data, cg):
     }
     for k in dist:
         dist[k] = [trial.amount_of(k) for trial in data]
+
+    ## Special case: scalar feedback of 0 should count as NO_FEEDBACK, so shift those counts from
+    ## SCALAR_FEEDBACK to NO_FEEDBACK
+    zero_feedback = [trial.amount_of_feedback_value(cg.env.SCALAR_FEEDBACK, 0) for trial in data]
+    for idx in range(len(zero_feedback)):
+        amt = zero_feedback[idx]
+        dist[cg.env.SCALAR_FEEDBACK][idx] -= amt
+        dist[cg.env.NO_FEEDBACK][idx] += amt
+        effort[idx] -= amt
+
     return effort, dist
 
 def compute_goal_success(data, cg):
@@ -722,14 +197,14 @@ def compute_goal_success(data, cg):
         print(f'Reawrd Estimate: {r}')
         cg.env.world = trial.grid_map
         cg.set_reward_estimate(r)
-        pi, Q = cg.forward()
+        pi, Q, _ = cg.forward()
         success_rate = goalSuccess(pi)
         goal_rate.append(success_rate)
         for transition in trial.transitions:
             r = transition.reward_estimate
             print(f'Reawrd Estimate: {r}')
             cg.set_reward_estimate(r)
-            pi, Q = cg.forward()
+            pi, Q, _ = cg.forward()
             success_rate = goalSuccess(pi)
             goal_rate.append(success_rate)
         goal_rate_per_trial.append(goal_rate)
@@ -797,7 +272,7 @@ def compute_violations(data, cg):
         print(f'Reawrd Estimate: {r}')
         cg.env.world = trial.grid_map
         cg.set_reward_estimate(r)
-        pi, Q = cg.forward()
+        pi, Q, _ = cg.forward()
         iteration_map, violation_map = policyViolations(pi)
         violations.append((np.mean(iteration_map),np.mean(violation_map)))
         detailed_violations_per_trial.append((iteration_map, violation_map))
@@ -805,7 +280,7 @@ def compute_violations(data, cg):
             r = transition.reward_estimate
             print(f'Reawrd Estimate: {r}')
             cg.set_reward_estimate(r)
-            pi, Q = cg.forward()
+            pi, Q, _ = cg.forward()
             iteration_map, violation_map = policyViolations(pi)
             violations.append((np.mean(iteration_map),np.mean(violation_map)))
             detailed_violations_per_trial.append((iteration_map, violation_map))
@@ -895,7 +370,8 @@ def plot_group_violations(
         'end': '-'
     }
     #color_list = ['blue','green', 'red', 'cyan', 'magenta', 'yellow', 'black']
-    color_list = ['magenta','gold', 'green', 'blue', 'red', 'cyan', 'black']
+    #color_list = ['magenta','gold', 'green', 'blue', 'red', 'cyan', 'black']
+    color_list = ['blue','red', 'green', 'cyan', 'magenta', 'yellow', 'black']
     colors = {k:v for k,v in zip(group_violations, color_list)}
 
     print(group_violations)
@@ -1230,14 +706,14 @@ def compute_demonstration_losses(data, cg, demonstration_losses):
         print(f'Reward Estimate: {r}')
         cg.env.world = trial.grid_map
         cg.set_reward_estimate(r)
-        pi, Q = cg.forward()
+        pi, Q, _ = cg.forward()
         demo_losses = update_losses(pi, demo_losses)
 
         for transition in trial.transitions:
             r = transition.reward_estimate
             print(f'Reawrd Estimate: {r}')
             cg.set_reward_estimate(r)
-            pi, Q = cg.forward()
+            pi, Q, _ = cg.forward()
             demo_losses = update_losses(pi, demo_losses)
 
     ## Confirm that all lists have the same length:
@@ -1419,6 +895,9 @@ def parse_args():
     parser.add_argument('--dataset', help='path to dataset', type=str)
     parser.add_argument('--prepopulate', help='prepopulate with action feedback',
         dest='prepopulate', action='store_true')
+    parser.add_argument('--feedback_policy',
+        default="human", choices=["human","action", "evaluative", "mixed"],
+        help='specify the feedback policy to use')
     parser.add_argument('--hide', help='hide plots, used for autosaving plots',
         dest='hide', action='store_true')
     parser.add_argument('--noforce', help='Agent decides whether to request feedback',
@@ -1484,8 +963,9 @@ if __name__ == '__main__':
         if args.prepopulate:
             print("Prepopulating trial data")
             prepop_trial_data = prepopulate(cg)
+        source_is_human = (args.feedback_policy == "human")
         episodes = 10
-        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data, force_feedback)
+        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data, force_feedback, source_is_human, args.feedback_policy)
     elif args.mode == "test":
         if args.dataset is None:
             print(f"Dataset path must be specified.")
