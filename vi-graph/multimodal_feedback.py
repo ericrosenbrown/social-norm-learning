@@ -58,7 +58,7 @@ def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_h
 
                 ## Get feedback for the planned action before actually taking it.
                 ##feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=True, feedback_policy_type="human")
-                feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=source_is_human, feedback_policy_type=feedback_policy_type)
+                feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=source_is_human, feedback_policy_type=feedback_policy_type, agent_cg=cg)
                 feedback = None
                 ## Classify the feedback
                 feedback_type = cg.env.classify_feedback(feedback_str)
@@ -896,7 +896,8 @@ def parse_args():
     parser.add_argument('--prepopulate', help='prepopulate with action feedback',
         dest='prepopulate', action='store_true')
     parser.add_argument('--feedback_policy',
-        default="human", choices=["human","action", "evaluative", "mixed"],
+        default="human", choices=["human","action", "evaluative", "mixed",
+            "r1_evaluative", "ranked_evaluative", "raw_evaluative", "policy_evaluation"],
         help='specify the feedback policy to use')
     parser.add_argument('--hide', help='hide plots, used for autosaving plots',
         dest='hide', action='store_true')
@@ -904,6 +905,8 @@ def parse_args():
         dest='noforce', action='store_true')
     parser.add_argument('--inputs', help='paths to dataset files used for plotting', nargs='+')
     parser.add_argument('--groupings', help='keyword groupings', nargs='+')
+    parser.add_argument('--seed', help='specifies a random seed', type=int,
+        default=np.random.default_rng().integers(1000000))
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -1169,6 +1172,7 @@ if __name__ == '__main__':
         print(f"Mode must be train or test")
         exit()
 
+    exit()
     plt.rcParams.update({'font.size': 20})
     all_violations, detailed_violations = compute_violations(all_training_data, cg)
     plot_violations(all_violations, detailed_violations, args.dataset, show=show_plots)

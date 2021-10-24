@@ -75,7 +75,7 @@ class ComputationGraph:
     def current_reward_estimate(self):
         return copy.deepcopy(self.rk.cpu().detach().numpy())
 
-    def forward(self):
+    def forward(self, as_numpy=False):
         """
         This is the planning function. For the agent's estimation of the reward function,
         what are the estimated Q values for taking each action, and what is the corresponding stochastic policy?
@@ -106,7 +106,10 @@ class ComputationGraph:
             pi = self.softmax(self.beta * Q)
             next_Q = (Q * pi).sum(dim=1)
             v = rffk + self.gamma * next_Q ## This back to 1D view again
-        return pi, Q, v
+        if not as_numpy:
+            return pi, Q, v
+        else:
+            return pi.cpu().detach().numpy(), Q.cpu().detach().numpy(), v.cpu().detach().numpy()
 
     def compute_expert_loss(self, pi, trajacts, trajcoords):
         nrows, ncols = self.env.world.shape
@@ -135,6 +138,8 @@ class ComputationGraph:
             acti = trajacts[i]
             state = trajcoords[i]
             loss += -torch.log(pi[state[0]*ncols+state[1]][acti])
+        ## Should be averaged over the batch size:
+        loss /= len(trajacts)
         loss.backward()
         return loss
 

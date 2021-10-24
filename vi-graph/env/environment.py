@@ -4,6 +4,7 @@ from .world import Worlds
 import torch
 import numpy as np
 from computation_graph import ComputationGraph
+from grid_world_search import GridWorldProblem, GridWorldSearch
 
 class Environment:
 
@@ -82,21 +83,44 @@ class Environment:
         """
         pass
 
-    def acquire_feedback(self, action_idx, r, c, source_is_human=True, feedback_policy_type="action"):
+    def acquire_feedback(self, action_idx, r, c, source_is_human=True, feedback_policy_type="action", agent_cg=None):
         """
         Acquires feedback from a source
+
+        action_idx = index into the env.actions array such that env.actions[action_idx] is the index
+            the agent plans on making
+        r, c = row and colum position of the agent
+        source_is_human = boolean indicating whether a human will give the feedback, or if an automated
+            teacher will provide the feedback
+        feedback_policy_type = if an automated teaching/feedback strategy is used, what is that strategy?
+        agent_cg = for some teaching / feedback strategies, it's assumed the teacher has formed some estimate
+            or model of the agent's policy, based on observing the agent's behavior over time. We pass in the
+            the agent's computational graph in order to automated teaching strategies to simplify this modeling
+            process.  If a teaching strategy should not have access to the agent's policy, then pass in None
         """
+        def is_number(f):
+            """
+            This function is here to support raw numerical feedback (from teaching/feedback automation).
+            """
+            try:
+                ffff = float(f)
+            except ValueError:
+                return False
+            except TypeError:
+                return False
+            return True
+
         valid_feedback = {"-2","-1","0","1","2","w","a","s","d","stay", "x"}
         feedback_str = None
         valid = True
-        while feedback_str not in valid_feedback:
+        while feedback_str not in valid_feedback and not is_number(feedback_str):
             if source_is_human:
                 if not valid: print("Invalid feedback specified")
                 print("Feedback Options: Action Options:  w(UP), d(RIGHT), s(DOWN), a(LEFT), stay(STAY)")
                 print("Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2")
                 feedback_str = input("Human Feedback: ")
             else:
-                feedback_str = self.feedback_source(action_idx, r, c, feedback_policy_type)
+                feedback_str = self.feedback_source(action_idx, r, c, feedback_policy_type, agent_cg)
             valid = False
         return feedback_str
 
@@ -104,16 +128,22 @@ class Environment:
         """
         Classifies the feedback into a feedback category
         """
+        print(f"Recieved: {feedback}")
         if feedback in "-2 -1 0":
             return self.SCALAR_FEEDBACK
         else:
-            return self.ACTION_FEEDBACK
+            try:
+                f = float(feedback)
+                return self.SCALAR_FEEDBACK
+            except ValueError:
+                ## Couldn't convert feedback to a float. Assuming ACTION_FEEDBACK
+                return self.ACTION_FEEDBACK
 
     def feedback_to_scalar(self, feedback):
         """
         Converts feedback to scalar
         """
-        return int(feedback)
+        return float(feedback)
 
     def feedback_to_demonstration(self, feedback, r, c):
         """
@@ -121,13 +151,28 @@ class Environment:
         """
         return [self.action_feedback_map[feedback]], [(r,c)]
 
-    def feedback_source(self, action, r, c, feedback_policy_type):
+    def feedback_source(self, action, r, c, feedback_policy_type, agent_cg):
         """
-        A simulator for providing feedback
+        A simulator for providing feedback.
+        This function is called from acquire_feedback()
+
+        action - idx in to the self.actions so that self.actions[action] corresponds with the
+            action the agent wishes to take
+        r, c - gridworld coordinates row, col
+        feedback_policy_type - string, this comes in as a program argument
+        agent_cg = for some teaching / feedback strategies, it's assumed the teacher has formed some estimate
+            or model of the agent's policy, based on observing the agent's behavior over time. We pass in the
+            the agent's computational graph in order to automated teaching strategies to simplify this modeling
+            process.  If a teaching strategy should not have access to the agent's policy, then pass in None
         """
+        nrows, ncols = self.world.shape
         ## TODO: Implement a feedback simulator to simulate giving feedback
         ## NOTE: For now, we've implemented optimal feedback for each grid location
         if feedback_policy_type == "action":
+            """
+            Ideally generalize this to optimal actions for arbitrary worlds other than world 1
+            Currently, this is relegated to single time-step trajectories
+            """
             ## Action only
             feedback_map = (
                 ("s","s","a","d","s","s","s","s","d","stay"),
@@ -138,47 +183,144 @@ class Environment:
             )
             return feedback_map[r][c]
 
-        if feedback_policy_type == "evaluative":
-            if self.sim_advantage is None or self.need_simulated_evaluative_feedback:
-                ## We haven't computed the simulated advantage values yet,
-                ## so compute those values using a prespecified reward function
-                self.sim_cg = ComputationGraph(self)
-                ## Specify a reward function to use
-                DEFAULT_REWARD = [0, -1, -1, -1,  1]
-                r = DEFAULT_REWARD
-                self.sim_cg.set_reward_estimate(r)
-                pi, Q, V = self.sim_cg.forward()
-                ## Q is (nrows*ncols) x (nacts) (2D)
-                ## V is (nrows*ncols) (1D)
-                V = V.unsqueeze(0).T.expand(Q.shape)
-                ## Advantage
-                A = (Q - V).cpu().detach().numpy() ## 2D nrows*ncols x nacts
-                self.need_simulated_evaluative_feedback = False
-                self.sim_advantage = A
-                self.sim_cg = None
+        if feedback_policy_type == "r1_evaluative":
+            """
+            A very rough automated approximation to researcher 1's evaluative feedback strategy.
+            This is based on ranking of path-cost, and then making adjustments for violations and other
+            undesirable behaviors.
 
-            ## Consider just advantage mapped onto -2,-1,+0,+1,+2 via ranking.
-            ## NOTE: Maps to -2, -1, 0, 1, 2 evaluative ranking that we have been using for experiments.
+            This first solves a for optimal-cost path via uniform-cost-search for every position in the grid
+            world to the goal
+            """
+            ## i.e. researcher 1's evaluative feedback teaching strategy:
+            ## Whenever a violation is made, the feedback must be negative. Feedback is a scalar that is ranked
+            ## and given such that the action brings the agent closer to the goal (i.e. along a shortest path)
+            ## is considered the best.
+            if self.need_simulated_evaluative_feedback:
+                goal_state = tuple(np.argwhere(self.world == 4)[0])
+                prob = GridWorldProblem(self, goal_state, goal_state)
+                search_problem = GridWorldSearch(prob)
+                costs, paths = search_problem.cost_to_goal()
+                self.need_simulated_evaluative_feedback = False
+                ## NOTE: These are the base costs from each point in the grid to the goal IF taking the shortest
+                ## path. When decision making, need to add the cost of transitioning from the current state
+                ## TO one of these cells to determine the actual cost of taking an action
+                ## Example for world 1:
+                ##   [[ 13.  12.  13.   8.   7.   6.   5.   4.   1.   0.]
+                ##    [ 12.  11.  10.   7.   6.   5.   4.   3.   2.   1.]
+                ##    [ 11.  10.   9.   8.   7.   6.   5.   4.   3.   2.]
+                ##    [ 12.  11.  10.   9.   8.   7.   6.   5.   4.   3.]
+                ##    [ 13.  12.  13.  14.  15. 107. 106.   6.   5.   4.]]
+                ##
+                self._costs = costs
+                self._paths = paths
+                prob.set_forward(forward=True)
+                self._problem = prob
+
+            ## NOTE: Feedback is "advantage-based" in this scenario in that the (a,s') pairs are ranked according to
+            ## the lowest cost of s'.
+            ## The possible actions are given by self.env.actions
+            ## NOTE: Decision costs are computed in the following way:
+            ##   The agent is currently at (r,c) and will take an action a that takes it to (r',c')
+            ##   Ranking of the action is determined by self._costs[(r',c')] + transition_cost((r,c), a, (r',c'))
+            decision_costs = np.zeros(len(self.actions))
+            for idx in range(len(self.actions)):
+                a = self.actions[idx]
+                next_state = self._problem.transition((r,c), a)
+                edge_cost = self._problem.transition_cost((r,c), a, next_state)
+                decision_costs[idx] = self._costs[next_state] + edge_cost
+            ## NOTE: argsort does highest value = largest index; lowest value = lowest index
+            ## In the lowest cost case, we want the highest index to have highest advantage
+            ## For example: 
+            ## If decision costs is : [101.   1.   3. 104. 101.]
+            ## then the argsort is [1, 2, 0, 4, 3]  ** See the np.argsort() documentation
+            ## To get the rank, do .argsort() again
+            mapped_advantage = (decision_costs.argsort().argsort() - 2)*(-1)
+            ## Addtional adjustments on "0" advantage cases:
+            ## "Staying Put" has ranking of 0, then it should get -2 advantage
+            ## "Violating action" has ranking of 0, give it -2
+            zero_idx = np.where(mapped_advantage == 0)[0][0]
+            ## Give staying put a negative value
+            if mapped_advantage[4] == 0:
+                mapped_advantage[4] -= 2
+                if mapped_advantage[4] < -2:
+                    mapped_advantage[4] = -2
+            ## Transitions to a violating state should be negative
+            if decision_costs[zero_idx] > 100:
+                mapped_advantage[zero_idx] = -2
+            ## Transitions that yield a larger min cost than current should be negative
+            if decision_costs[zero_idx] < 100:
+                ## If the action brings it to a state where the min cost is greater than the current state,
+                ## then make sure that gets a negative value
+                current_cost = self._costs[(r,c)]
+                other_cost = self._costs[self._problem.transition((r,c), self.actions[zero_idx])]
+                if other_cost > current_cost:
+                    mapped_advantage[zero_idx] = -2
+            print(decision_costs)
+            print(mapped_advantage)
+            ## Fix for giving 0 advantage to "staying put"
+            #if action == 4 and mapped_advantage[action] == 0:
+            #    return str(-2)
+            return str(mapped_advantage[action])
+
+        if feedback_policy_type == "ranked_evaluative":
+            """
+            "Ranks" the advantage values computed from a ground truth reward function
+            i.e. runs "raw_evaluative" to get the advantage values, and then maps them onto
+            a {-2, -1, 0, 1, 2} range
+            This version is independent of the agent's policy
+            """
+            self.__compute_ground_truth()
+            ## Consider just advantage mapped onto -2, -1, +0, +1, +2 via ranking.
+            ## NOTE: Maps to -2, -1, +0, +1, +2 evaluative ranking that we have been using for experiments.
             ## If we don't want to do this, then just return the raw advantage
             ## To return raw advantage, set map_to_ranked_advantage_scale to False
-            map_to_ranked_advantage_scale = True
-            if map_to_ranked_evaluative_scale:
-                mapped_advantage = self.sim_advantage.argsort() - 2
-                return str(mapped_advantage[r*nrows + c][action])
-            else:
-                ## TODO: Support raw advantage values (for arbitrary scaling)
-                ## Alternatively, we should also be able to handle direct advantage feedback
-                ## Scalar only
-                ## Return advantage value
-                ## Assumes a reward function that yields correct optimal behavior
-                ## However, what's interesting that is that depending on the scale,
-                ## the advantage values will be different! So maybe normalize the values.
-                raw_advantage = self.sim_advantage[r*nrows+c][action]
-                ## NOTE: This is not yet supported
-                raise ValueError("Raw advantage support not yet implemented.")
-                return str(raw_advantage)
+            mapped_advantage = self.sim_advantage.argsort().argsort() - 2
+            #print(mapped_advantage)
+            #print(f"r: {r}, c: {c}, nrows: {nrows}, action: {action}")
+            return str(mapped_advantage[r*nrows + c, action])
+       
+        if feedback_policy_type == "policy_evaluation":
+            """
+            The teacher evaluates an estimate of the agent's policy in order to provide feedback.
+            For now, we provide the agent's exact policy, and evaluate it against a ground-truth
+            reward function.  Returns raw advantage values.
+
+            This evaluates the agent's policy against a ground truth reward function (hence making
+            the feedback under this strategy policy dependent, inline with COACH).
+            """
+            agent_pi, agent_Q, agent_V = agent_cg.forward(as_numpy=True)
+            self.__compute_ground_truth()
+            Q, V = self.policy_evaluation(self.sim_cg.current_reward_estimate(), agent_pi)
+            
+ 
+        if feedback_policy_type == "raw_evaluative":
+            """
+            Uses the raw advantage values computed from a ground truth reward function
+            This version is independent of the agent's policy
+            """
+            self.__compute_ground_truth()
+            ## TODO: Support raw advantage values (for arbitrary scaling)
+            ## Alternatively, we should also be able to handle direct advantage feedback
+            ## Scalar only
+            ## Return advantage value
+            ## Assumes a reward function that yields correct optimal behavior
+            ## However, what's interesting that is that depending on the scale,
+            ## the advantage values will be different! So maybe normalize the values.
+            raw_advantage = self.sim_advantage[r*nrows+c][action]
+            print(f"Advantage: {self.sim_advantage[r*nrows+c]}")
+            print(f"Policy: {self.policy[r*nrows+c]}")
+            print(f"QVals: {self.Qvals[r*nrows+c]}")
+            print(f"Vvals: {self.Vvals[r*nrows+c]}")
+            #print(self.sim_advantage)
+            ## NOTE: This is not yet supported
+            #raise ValueError("Raw advantage support not yet implemented.")
+            return str(raw_advantage)
 
         if feedback_policy_type == "mixed":
+            """
+            This is supposed to represent a placeholder for some mix of action and evaluative feedback
+            """
             ### Create a static mixture of the action and evaluative feedback
             ### Create a dynamic mixture of action and evaluative feedback (distribution changes over time)
             ### Create a mixture dependent on the history of the state, action, feedback encountered
@@ -186,6 +328,50 @@ class Environment:
                 return self.feedback_source(action, r, c, "action")
             else:
                 return self.feedback_source(action, r, c, "evaluative")
+
+    def policy_evaluation(self, reward_func, policy):
+        """
+        Evaluates a policy under a ground truth reward function.
+        reward_func = a feature-based reward function to evaluate the policy against
+            numpy_array or pytorch.tensor
+        policy = a policy to evaluate against the reward (i.e. find V and Q-values under this policy)
+            numpy_array or pytorch.tensor
+        """
+        ## Solve system of equations to determine U
+        raise NotImplementedError('Policy evaluation function has not yet been implemented')
+
+    def __compute_ground_truth(self):
+        """
+        This computes an optimal policy from a feature-based ground truth reward function.
+        """
+        if self.sim_advantage is None or self.need_simulated_evaluative_feedback:
+            ## We haven't computed the simulated advantage values yet,
+            ## so compute those values using a prespecified reward function
+            self.sim_cg = ComputationGraph(self)
+            ## Specify a reward function to use
+            ## default_0
+            ## DEFAULT_REWARD = [0, -1, -1, -1,  1]
+            ## default_1
+            ## DEFAULT_REWARD = [1.3605843, -1.1135638, -0.62023115, -1.9482319, 2.837054]
+            ## default_2
+            ## DEFAULT_REWARD = [ 0.6487329, -2.6717327, -1.280116, 0.519958, 2.7245345]
+            ## default_3 (from supervised action-only version, probably most accurate?)
+            DEFAULT_REWARD = [ 0.5631, -0.4677, -0.4628, -0.7351,  1.1025]
+            reward = np.array(DEFAULT_REWARD)
+            reward = reward / np.linalg.norm(reward)
+            self.sim_cg.set_reward_estimate(reward)
+            pi, Q, V = self.sim_cg.forward()
+            ## Q is (nrows*ncols) x (nacts) (2D)
+            ## V is (nrows*ncols) (1D)
+            V = V.unsqueeze(0).T.expand(Q.shape)
+            ## Advantage
+            A = (Q - V).cpu().detach().numpy() ## 2D nrows*ncols x nacts
+            self.need_simulated_evaluative_feedback = False
+            self.sim_advantage = A
+            self.policy = pi
+            self.Qvals = Q
+            self.Vvals = V
+            #self.sim_cg = None
 
     def random_start_state(self):
         """
@@ -279,9 +465,9 @@ class Environment:
         """
         Return transition matrix
         """
-        def clip(v,min,max):
-            if v < min: v = min
-            if v > max-1: v = max-1
+        def clip(v,min_v,max_v):
+            if v < min_v: v = min_v
+            if v > max_v-1: v = max_v-1
             return(v)
         nrows,ncols = self.world.shape
         nacts = len(self.actions)

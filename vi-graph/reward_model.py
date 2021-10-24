@@ -18,23 +18,23 @@ class GridWorldRewardModel:
     def __init__(self, reward_features, env, gamma, trans_dict, trans_tuple):
         self.gamma = gamma
         self.env = env
-        self.matmap = env.get_matmap()
+        self.matmap = self.env.get_matmap()
         nrows, ncols, ncategories = self.matmap.shape
         self.nrows = nrows
         self.ncols = ncols
         self.ncats = ncategories
         ## Grid map is a 2D representation of the GridWorld. Each element is the category
-        self.grid_map = torch.tensor(env.world, dtype=int, requires_grad=False)
+        self.grid_map = torch.tensor(self.env.world, dtype=int, requires_grad=False)
         ## Observation and action space is given by the flattened grid_world, it is 1D.
         self.obs_space = torch.arange(nrows*ncols, dtype=int)
-        self.act_space = torch.arange(len(env.actions), dtype=int)
+        self.act_space = torch.arange(len(self.env.actions), dtype=int)
         ## Represents possible actions
-        self.actions = torch.arange(len(env.actions), dtype=int, requires_grad=False)
+        self.actions = torch.arange(len(self.env.actions), dtype=int, requires_grad=False)
         ## R(s,a,s') = R(s,a,\phi(s')), feature based rewards vector
         self.trans_dict = trans_dict
         self.trans_tuple = trans_tuple
 
-        self.feature_rewards = torch.tensor(reward_features, dtype=env.dtype, requires_grad=True)
+        self.feature_rewards = torch.tensor(reward_features, dtype=self.env.dtype, requires_grad=True)
         self._forward()
 
     def _forward(self):
@@ -47,13 +47,13 @@ class GridWorldRewardModel:
         self.reward_model = rfk.view(self.nrows*self.ncols) ## flattened 1D view of the 2D grid
         ## Create 3D verasion of rewrd model: (s,a,s'). The above version corresponds with s'
         ## R(s,a,s')
-        self.full_reward_model = torch.zeros((self.nrows*self.ncols, len(env.actions), self.nrows*self.ncols))
+        self.full_reward_model = torch.zeros((self.nrows*self.ncols, len(self.env.actions), self.nrows*self.ncols))
         for s,a,sp in self.trans_tuple:
             self.full_reward_model[s,a,sp] = self.reward_model[sp]
         self.canonicalized_reward = self.get_canonicalized_reward(self.trans_dict, self.trans_tuple)
 
     def update(self, reward_features):
-        self.feature_rewards = torch.tensor(reward_features, dtype=env.dtype, requires_grad=True)
+        self.feature_rewards = torch.tensor(reward_features, dtype=self.env.dtype, requires_grad=True)
         self._forward()
 
     def expected_reward_from_s(self, s, transitions):
