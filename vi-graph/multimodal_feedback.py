@@ -897,7 +897,7 @@ def parse_args():
         dest='prepopulate', action='store_true')
     parser.add_argument('--feedback_policy',
         default="human", choices=["human","action", "evaluative", "mixed",
-            "r1_evaluative", "ranked_evaluative", "raw_evaluative", "policy_evaluation"],
+            "r1_evaluative", "ranked_evaluative", "raw_evaluative", "policy_evaluation", "ranked_policy_evaluation"],
         help='specify the feedback policy to use')
     parser.add_argument('--hide', help='hide plots, used for autosaving plots',
         dest='hide', action='store_true')

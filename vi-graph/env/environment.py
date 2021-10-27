@@ -33,6 +33,8 @@ class Environment:
         self.need_simulated_evaluative_feedback = True
         self.sim_cg = None
         self.sim_advantage = None
+        self.transition_matrix = None
+        self.matrix_map = None
         self.rng = np.random.default_rng()
 
     def flattened_sas_transitions(self):
@@ -291,8 +293,37 @@ class Environment:
             """
             agent_pi, agent_Q, agent_V = agent_cg.forward(as_numpy=True)
             self.__compute_ground_truth()
-            Q, V = self.policy_evaluation(self.sim_cg.current_reward_estimate(), agent_pi)
-            
+            A, Q, V = self.policy_evaluation(self.sim_cg.current_reward_estimate(), agent_pi)
+            raw_advantage = A[r*nrows+c][action]
+            print(f"Agent Policy: {agent_pi[r*nrows+c]}")
+            print(f"A: {A[r*nrows+c]}")
+            print(f"Q: {Q[r*nrows+c]}")
+            print(f"V: {V[r*nrows+c]}")
+            return str(raw_advantage)
+
+        if feedback_policy_type == "ranked_policy_evaluation":
+            """
+            The teacher evaluates an estimate of the agent's policy in order to provide feedback.
+            For now, we provide the agent's exact policy, and evaluate it against a ground-truth
+            reward function.  Returns raw advantage values.
+
+            This evaluates the agent's policy against a ground truth reward function (hence making
+            the feedback under this strategy policy dependent, inline with COACH).
+            """
+            if action == 4:
+                return str(-2) ## Discourage "staying"
+            agent_pi, agent_Q, agent_V = agent_cg.forward(as_numpy=True)
+            self.__compute_ground_truth()
+            A, Q, V = self.policy_evaluation(self.sim_cg.current_reward_estimate(), agent_pi)
+            raw_advantage = A[r*nrows+c][action]
+            print(f"Agent Policy: {agent_pi[r*nrows+c]}")
+            print(f"A: {A[r*nrows+c]}")
+            print(f"Q: {Q[r*nrows+c]}")
+            print(f"V: {V[r*nrows+c]}")
+            ranked_advantage = A.argsort().argsort() - 2
+            ## Set 0 to -1
+            ranked_advantage[ranked_advantage == 0] = -1
+            return str(ranked_advantage[r*nrows+c, action])
  
         if feedback_policy_type == "raw_evaluative":
             """
@@ -337,8 +368,80 @@ class Environment:
         policy = a policy to evaluate against the reward (i.e. find V and Q-values under this policy)
             numpy_array or pytorch.tensor
         """
-        ## Solve system of equations to determine U
-        raise NotImplementedError('Policy evaluation function has not yet been implemented')
+        ## Solve system of equations to determine V^pi, or just iterate Bellman equation
+        ## policy = |S| x |A|
+        stochastic_pi = torch.tensor(policy, dtype=self.dtype, requires_grad=False)
+        ## Transition matrix is |A|x|S|x|S'|
+        if self.transition_matrix is None:
+            self.transition_matrix = self.get_mattrans()
+        if self.matrix_map is None:
+            self.matrix_map = self.get_matmap()
+
+        ## reward func is |F|-length vector. we want to compute R(s,a), which is the expected reward you get
+        ## for taking action (a) in state (s) (and leading you into state s'). We can construct this from the
+        ## transition matrix: R(s,a) = T(a,s,s')R(s'), then sum reduce across the S' dimension (i.e. take inner product)
+        ## This will result in a |A|x|S| reward matrix
+        r_s = self.__compute_reward_s(reward_func)
+        r_sa = self.__compute_reward_sa(r_s)
+        ## one step expected return: |S| element vector:
+        ## one_step = \sum_a \pi(a|s)r(s,a)
+        one_step = (stochastic_pi*(r_sa.T)).sum(-1)
+        
+        ## Initialize the Value function to this
+        V = r_s.detach().clone()
+
+        g = 0.99 ## gamma
+        for _ in range(100):
+            ## Bellman update
+            ## V^\pi(s) = \sum_a \pi(a|s)r(s,a) + g\sum_a \pi(a|s) \sum_{s'} T(s'|s,a)V^\pi(s')
+            V = one_step + g*((stochastic_pi*(torch.matmul(self.transition_matrix, V).T)).sum(-1))
+
+        ## We can compute Q^\pi from V^\pi, T
+        ## Q^\pi(s,a) = r(s,a) + g\sum_{s'} T(s'|s,a)V^\pi(s')
+        ## Do transpose to get a |S|x|A| matrix
+        Q = (r_sa + g*torch.matmul(self.transition_matrix, V)).T
+        A = self.__compute_advantage(Q, V.detach().clone())
+        return A.numpy(), Q.numpy(), V.numpy()
+
+    def __compute_reward_sa(self, rs):
+        """
+        Computes a R(s,a) reward function using R(s') and T(a,s,s')
+        """
+        if self.transition_matrix is None:
+            self.transition_matrix = self.get_mattrans()
+        ## If  |A|x|S|x|S'| x |S'|, then do torch.matmul(T, R)
+        ## If  |A|x|S|x|S'| x |S'|x1, then do torch.matmul(T, R.squeeze()) or torch.matmul(T, R).sum(-1) or torch,matmul(T,R).squeeze()
+        r_sa = torch.matmul(self.transition_matrix, rs)  ## should be |A| x |S|
+        return r_sa
+
+    def __compute_reward_s(self, reward_func):
+        """
+        Computes a R(s) reward function using the feature-based reward function and a matrix map
+        """
+        if self.matrix_map is None:
+            self.matrix_map = self.get_matmap()
+        rk = torch.tensor(reward_func, dtype=self.dtype, requires_grad=False)
+        new_rk = rk.unsqueeze(0)
+        new_rk = new_rk.unsqueeze(0)
+        nrows, ncols, ncategories = self.matrix_map.shape
+        new_rk = new_rk.expand(nrows, ncols, ncategories)
+        ## Dot product to obtain the reward function applied to the matrix map
+        rfk = torch.mul(self.matrix_map, new_rk)
+        rfk = rfk.sum(axis=-1)
+        rffk = rfk.view(nrows*ncols) ## 1D view of the 2D grid
+        #initialize the value function to be the reward function, required_grad should be false
+        return rffk
+
+    def __compute_advantage(self, Q, V):
+        """
+        Computes A = Q-V
+
+        Expects Q = |S|x|A| (2-D), V = |S| (1-D)
+        """
+        V = V.unsqueeze(0).T.expand(Q.shape)
+        ## Advantage
+        A = Q - V ## 2D nrows*ncols x nacts
+        return A
 
     def __compute_ground_truth(self):
         """
@@ -357,7 +460,7 @@ class Environment:
             ## DEFAULT_REWARD = [ 0.6487329, -2.6717327, -1.280116, 0.519958, 2.7245345]
             ## default_3 (from supervised action-only version, probably most accurate?)
             DEFAULT_REWARD = [ 0.5631, -0.4677, -0.4628, -0.7351,  1.1025]
-            reward = np.array(DEFAULT_REWARD)
+            reward = np.array(DEFAULT_REWARD) - DEFAULT_REWARD[0] - 0.01
             reward = reward / np.linalg.norm(reward)
             self.sim_cg.set_reward_estimate(reward)
             pi, Q, V = self.sim_cg.forward()
