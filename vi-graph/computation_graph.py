@@ -69,6 +69,15 @@ class ComputationGraph:
         self.recorded_losses = ComputationGraph.lossdict()
         self.recorded_losses.set_decode({0: 'U', 1: 'R', 2: 'D', 3: 'L', 4: 'S'})
 
+    def set_gamma(self, g):
+        self.gamma = g
+
+    def set_alpha(self, a):
+        self.alpha = a
+
+    def set_horizon(self, h):
+        self.horizon = h
+
     def set_reward_estimate(self, r):
         self.rk = torch.tensor(r, dtype=self.dtype, requires_grad=True)
 

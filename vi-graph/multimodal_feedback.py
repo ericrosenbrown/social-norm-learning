@@ -907,6 +907,12 @@ def parse_args():
     parser.add_argument('--groupings', help='keyword groupings', nargs='+')
     parser.add_argument('--seed', help='specifies a random seed', type=int,
         default=np.random.default_rng().integers(1000000))
+    parser.add_argument('--episodes', type=int,
+        default=10, help='determines number of episodes for which to train the agent for. Default is 10')
+    parser.add_argument('--gamma', type=float,
+        default=0.90, help='discount factor to use')
+    parser.add_argument('--alpha', type=float,
+        default=0.001, help='learning rate to use')
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -949,7 +955,11 @@ if __name__ == '__main__':
     idx = 0
     grid_maps, state_starts, viz_starts = Worlds.define_worlds()
     env = Environment(grid_maps[idx], state_starts[idx], viz_starts[idx], Worlds.categories)
+    gamma = args.gamma
+    alpha = args.alpha
     cg = ComputationGraph(env)
+    cg.set_gamma(gamma)
+    cg.set_alpha(alpha)
     prepop_trial_data = None
     show_plots = True
     force_feedback = True
@@ -967,7 +977,7 @@ if __name__ == '__main__':
             print("Prepopulating trial data")
             prepop_trial_data = prepopulate(cg)
         source_is_human = (args.feedback_policy == "human")
-        episodes = 10
+        episodes = args.episodes
         all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data, force_feedback, source_is_human, args.feedback_policy)
     elif args.mode == "test":
         if args.dataset is None:
