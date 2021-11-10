@@ -27,7 +27,7 @@ class ComputationGraph:
                 parts.append('{0}: {1} -> {2}'.format(k[0], self.action_mapping[k[1]], str(v[-1])))
             return '\n'.join(parts)
 
-    def __init__(self, env):
+    def __init__(self, env, seed=None):
         """
         Initialize the computation graph
 
@@ -53,7 +53,11 @@ class ComputationGraph:
         self.softmax = torch.nn.Softmax(dim=1)
         ## Number of gradient updates to compute
         self.num_updates = 100
-        
+        if seed is None:
+            self.rng = np.random.default_rng()
+        else:
+            self.rng = np.random.default_rng(seed)
+
         #initial random guess on r
         #r starts as [n] categories. we will inflate this to [rows,cols,n]
         # to multiple with matmap and sum across category
@@ -130,7 +134,64 @@ class ComputationGraph:
             if (state, acti) not in self.recorded_losses:
                 self.recorded_losses[(state,acti)] = [loss.cpu().detach().numpy()]
         return loss
+    
+    def compute_expert_trajectory_loss(self, pi, trajectory):
+        nrows, ncols = self.env.world.shape
+        loss = 0
 
+        ## Update the losses for all the demonstrations that have been seen so far
+        for sa in self.recorded_losses:
+            state, acti = sa
+            example_loss = -torch.log(pi[state[0]*ncols+state[1]][acti])
+            self.recorded_losses[sa].append(example_loss.cpu().detach().numpy())
+
+        ## Update the new loss if applicable
+        for s,a in trajectory:
+            loss = -torch.log(pi[s[0]*ncols+s[1]][a])
+
+            if (s, a) not in self.recorded_losses:
+                self.recorded_losses[(s,a)] = [loss.cpu().detach().numpy()]
+        return loss
+    
+    def trajectories_loss(self, pi, Q, trajectories):
+        nrows, ncols = self.env.world.shape
+        loss = 0
+        num_trajectories = len(trajectories)
+        total_states = 0
+        for traj in trajectories:
+            for s, a in traj:
+                loss += -torch.log(pi[s[0]*ncols+s[1]][a])
+            total_states = total_states + len(traj)
+        ## Note this differs slightly from policy gradient in that policy gradient typically
+        ## divides by the number of trajectories, not (s,a) pairs.
+        loss /= total_states
+        loss.backward()
+        return loss
+
+    def trajectory_update(self, trajectories):
+        """
+        For now we just do max likelihood by treating trajectories as
+        a set of independent (s,a) pairs.
+        """
+        ## return self.__action_heuristic_update(trajacts, trajcoords)
+        return self.__trajectories_finite_iterations_update(trajectories)
+
+    def __trajectories_finite_iterations_update(self, trajectories):
+        """
+        Do Max Likelihood on batch of trajectories. Difference from policy gradient is that
+        we don't scale by the Q-values or the reward to go
+        """
+        print("LEARNING!***************")
+        piout, Qout, loss = None, None, None
+        for k in range(self.num_updates):
+            piout, Qout, _ = self.forward()
+            loss = self.trajectories_loss(piout, Qout, trajectories)
+            with torch.no_grad():
+                grads_value = self.rk.grad
+                self.rk -= self.learning_rate * grads_value
+                self.rk.grad.zero_()
+        return piout, Qout, loss, self.rk
+        
     def action_loss(self, pi, Q, trajacts, trajcoords):
         nrows, ncols = self.env.world.shape
         loss = 0
@@ -263,7 +324,7 @@ class ComputationGraph:
                 line += '^>v<x?01234'[grid[r][c]]
             print(line)
 
-    def chooseAction(self, r, c):
+    def chooseAction(self, r, c, deterministic=True):
         pi, Q, _ = self.forward()
         epsilon = 0.25
         nrows, ncols, ncategories = self.matmap.shape
@@ -298,7 +359,11 @@ class ComputationGraph:
         # print("Picking from probabilities...")
         # choice = np.random.choice(5, 1, p=action_prob)[0]
         # print(choice)
-        choice = np.argmax(action_prob)
+        choice = None
+        if deterministic:
+            choice = np.argmax(action_prob)
+        else:
+            choice = self.rng.choice(len(self.env.actions), 1, p=action_prob)[0]
         return choice, copy.deepcopy(pi[r*ncols+c].cpu().detach().numpy())
 
     def request_feedback(self, cur_r, cur_c, force=True):

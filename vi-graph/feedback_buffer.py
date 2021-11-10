@@ -13,6 +13,10 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
+## NOTE: Previously, trajectory was called "action"
+##       Policy was just local policy; now it is the full policy
+##       Feedback_value may also take on a trajectory value
+##       "action" is now a state-action sequence (trajectory)
 Transition = namedtuple("Transition", "t reward_estimate state action policy feedback_type feedback_value")
 
 class TrialBuffer:

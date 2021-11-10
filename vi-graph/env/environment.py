@@ -27,7 +27,9 @@ class Environment:
         }
 
         self.SCALAR_FEEDBACK = 100
-        self.ACTION_FEEDBACK = 200
+        self.ACTION_FEEDBACK = 200              ## Feedback is a single action, (NOT a 1-step s,a sequence)
+        self.TRAJECTORY_FEEDBACK = 210          ## Feedback is a single trajectory (an N-step s,a sequence)
+        self.TRAJECTORY_SET_FEEDBACK = 220      ## Feedback is a set of trajectories (a set of N-step s,a sequences)
         self.NO_FEEDBACK = 300
 
         self.need_simulated_evaluative_feedback = True
@@ -73,11 +75,24 @@ class Environment:
     def get_world(self):
         return copy.deepcopy(self.world)
 
-    def inform_human(self, action_idx):
+    def inform_human(self, trajectory):
         """
         The environment informs the human what action the agent is planning to take
+
+        Takes in an action-state sequence, and displays the trajectory that the agent plans to take
+        in the environment
         """
-        print(f"The agent plans to do action: {self.act_name[action_idx]}")
+        print(f"The agent plans to take the following {len(trajectory)}-step trajectory:")
+        nrows, ncols = self.world.shape
+        grid = self.world + 6
+        for s, a in trajectory:
+            grid[s] = a
+
+        for r in range(nrows):
+            line = ""
+            for c in range(ncols):
+                line += '^>v<x?01234'[grid[r, c]]
+            print(line)
 
     def request_feedback_from_human(self):
         """
@@ -85,7 +100,7 @@ class Environment:
         """
         pass
 
-    def acquire_feedback(self, action_idx, r, c, source_is_human=True, feedback_policy_type="action", agent_cg=None):
+    def acquire_feedback(self, trajectory, r, c, source_is_human=True, feedback_policy_type="action", agent_cg=None):
         """
         Acquires feedback from a source
 
@@ -115,6 +130,9 @@ class Environment:
         valid_feedback = {"-2","-1","0","1","2","w","a","s","d","stay", "x"}
         feedback_str = None
         valid = True
+
+        ## TODO: Need to make the following changes: all action -> trajectory (in terms of feedback)
+
         while feedback_str not in valid_feedback and not is_number(feedback_str):
             if source_is_human:
                 if not valid: print("Invalid feedback specified")
@@ -122,7 +140,7 @@ class Environment:
                 print("Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2")
                 feedback_str = input("Human Feedback: ")
             else:
-                feedback_str = self.feedback_source(action_idx, r, c, feedback_policy_type, agent_cg)
+                return self.feedback_source(trajectory, r, c, feedback_policy_type, agent_cg)
             valid = False
         return feedback_str
 
@@ -153,37 +171,108 @@ class Environment:
         """
         return [self.action_feedback_map[feedback]], [(r,c)]
 
-    def feedback_source(self, action, r, c, feedback_policy_type, agent_cg):
+    def __optimal_trajectory_from_state(self, state, max_length=1, feedback_map=None):
+        assert feedback_map is not None
+        trajectory_length = max_length
+        feedback_trajectory = []
+        r_s, c_s = state
+        for _ in range(trajectory_length):
+            s = (r_s, r_c)
+            a_str = feedback_map[r_s][c_s]
+            act = self.action_feedback_map[a_str]
+            feedback_trajectory.append((s, act))
+            r_s, r_c = self.step(r_s, r_c, act)
+        return feedback_trajectory
+
+    def feedback_source(self, trajectory, r, c, feedback_policy_type, agent_cg):
         """
         A simulator for providing feedback.
         This function is called from acquire_feedback()
 
-        action - idx in to the self.actions so that self.actions[action] corresponds with the
-            action the agent wishes to take
+        trajectory - sequences of (s_0, a)
         r, c - gridworld coordinates row, col
         feedback_policy_type - string, this comes in as a program argument
         agent_cg = for some teaching / feedback strategies, it's assumed the teacher has formed some estimate
             or model of the agent's policy, based on observing the agent's behavior over time. We pass in the
             the agent's computational graph in order to automated teaching strategies to simplify this modeling
             process.  If a teaching strategy should not have access to the agent's policy, then pass in None
+
+        This will now return (feedback, feedback_type)
+
+        NOTE: If a full trajectory is provided, then all feedback should be with respect to the trajectory.
+            - If action feedback will be given, then provide an optimal trajectory of up to equal length of the
+                input trajectory.
+            - If evaluative feedback will be given, then...
+
         """
         nrows, ncols = self.world.shape
         ## TODO: Implement a feedback simulator to simulate giving feedback
         ## NOTE: For now, we've implemented optimal feedback for each grid location
+        ## Optimal actions map for only world 1
+        feedback_map = (
+            ("s","s","a","d","s","s","s","s","d","stay"),
+            ("s","s","s","d","d","d","d","d","d","w"),
+            ("d","d","d","d","d","d","d","d","d","w"),
+            ("w","w","w","w","w","w","w","d","d","w"),
+            ("w","w","a","a","a","w","w","d","d","w")
+        )
         if feedback_policy_type == "action":
+            return self.action_feedback_map[feedback_map[r][c]], self.ACTION_FEEDBACK
+
+        if feedback_policy_type == "1_step_corrective":
             """
             Ideally generalize this to optimal actions for arbitrary worlds other than world 1
             Currently, this is relegated to single time-step trajectories
+
+            For trajectory-feedback, there are two options:
+            If the agent provides an N-step trajectory, there are N states in that trajectory (some of the N-states may be very undesireable)
+              (a) Provide optimal action at each of the N-states in the trajectory; this is "corrective"
+              (b) Provide optimal trajectory starting from the initial state of the trajectory; this is a "demonstration"
+              (c) Provide optimal trajectory starting from each of the N-states in the trajectory; this provides "corrective demonstrations"
+              (d) If human had to choose a single most informative trajectory from the set in (c), which one would be chosen?
+            (The first option seems to be the 1-step version of the third option).
+
+            For "action" we inherit the "corrective" feedback style (a), so this is a "series of optimal 1-step trajectories" from each state
+            which is just a special case of (c)
             """
-            ## Action only
-            feedback_map = (
-                ("s","s","a","d","s","s","s","s","d","stay"),
-                ("s","s","s","d","d","d","d","d","d","w"),
-                ("d","d","d","d","d","d","d","d","d","w"),
-                ("w","w","w","w","w","w","w","d","d","w"),
-                ("w","w","a","a","a","w","w","d","d","w")
-            )
-            return feedback_map[r][c]
+            trajectory_length = len(trajectory)
+            feedback_trajectory = []
+            for s, a in trajectory:
+                r_s, c_s = s
+                a_str = feedback_map[r_s][c_s]
+                act = self.action_feedback_map[a_str]
+                feedback_trajectory.append((s, act))
+            return feedback_trajectory, self.TRAJECTORY_FEEDBACK
+
+        if feedback_policy_type == "init_demonstration":
+            """
+            This implements strategy (b) Provide optimal trajectory starting from the initial state of the trajectory
+            """
+            feedback_trajectory = self.__optimal_trajectory_from_state((r,c), max_length=len(trajectory), feedback_map=feedback_map)
+            return feedback_trajectory, self.TRAJECTORY_FEEDBACK
+
+        if feedback_policy_type == "set_demonstration":
+            """
+            This implements strategy (c): teacher provides back a set of N optimal demonstrations
+            """
+            trajectory_length = len(trajectory)
+            feedback_trajectory = []
+            adj = 0
+            for s, a in trajectory:
+                f_trajectory = self.__optimal_trajectory_from_state(s, max_length=trajectory_length - adj, feedback_map=feedback_map)
+                feedback_trajectory.append((s, f_trajectory))
+                adj = adj + 1
+            return feedback_trajectory, self.TRAJECTORY_SET_FEEDBACK
+            
+        if feedback_policy_type == "selective_demonstration":
+            """
+            This implements strategy (d): from the set computed in (c), teacher selects a demonstration to return, according to criteria.
+            Ideally the teacher should select the trajectory that provides the most information to the agent?
+
+            Much of the literature uses a softmax of trajectory returns to obtain a probabilistic value to argmax over. Why?
+            """
+            raise NotImplementedError("selective_demonstration has not been implemented")
+            pass
 
         if feedback_policy_type == "r1_evaluative":
             """
@@ -263,7 +352,7 @@ class Environment:
             ## Fix for giving 0 advantage to "staying put"
             #if action == 4 and mapped_advantage[action] == 0:
             #    return str(-2)
-            return str(mapped_advantage[action])
+            return str(mapped_advantage[action]), self.SCALAR_FEEDBACK
 
         if feedback_policy_type == "ranked_evaluative":
             """
@@ -280,7 +369,7 @@ class Environment:
             mapped_advantage = self.sim_advantage.argsort().argsort() - 2
             #print(mapped_advantage)
             #print(f"r: {r}, c: {c}, nrows: {nrows}, action: {action}")
-            return str(mapped_advantage[r*nrows + c, action])
+            return str(mapped_advantage[r*nrows + c, action]), self.SCALAR_FEEDBACK
        
         if feedback_policy_type == "policy_evaluation":
             """
@@ -299,7 +388,7 @@ class Environment:
             print(f"A: {A[r*nrows+c]}")
             print(f"Q: {Q[r*nrows+c]}")
             print(f"V: {V[r*nrows+c]}")
-            return str(raw_advantage)
+            return str(raw_advantage), self.SCALAR_FEEDBACK
 
         if feedback_policy_type == "ranked_policy_evaluation":
             """
@@ -323,7 +412,7 @@ class Environment:
             ranked_advantage = A.argsort().argsort() - 2
             ## Set 0 to -1
             ranked_advantage[ranked_advantage == 0] = -1
-            return str(ranked_advantage[r*nrows+c, action])
+            return str(ranked_advantage[r*nrows+c, action]), self.SCALAR_FEEDBACK
  
         if feedback_policy_type == "raw_evaluative":
             """
@@ -346,7 +435,7 @@ class Environment:
             #print(self.sim_advantage)
             ## NOTE: This is not yet supported
             #raise ValueError("Raw advantage support not yet implemented.")
-            return str(raw_advantage)
+            return str(raw_advantage), self.SCALAR_FEEDBACK
 
         if feedback_policy_type == "mixed":
             """

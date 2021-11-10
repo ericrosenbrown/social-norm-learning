@@ -19,9 +19,25 @@ from reward_model import GridWorldRewardModel
 from feedback_buffer import Transition, TrialBuffer, Trial
 
 
-def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_human=True, feedback_policy_type="human"):
+def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_human=True,
+          feedback_policy_type="human", agent_policy="deterministic", trajectory_length=1):
     """
     Train the agent's estimate of the reward function
+
+    Inputs:
+     - episodes - number of episodes to train for, defaults to 10
+     - cg - a ComputationalGraph, which represents the agent
+     - prepop_trial_data - a single Trial of arbitrary length time steps, prepopluated with feedback data
+     - force_feedback - a boolean value indicating whether feedback should be forced into the agent after
+            after each N-step trajectory or not (see trajectory_length)
+     - source_is_human - a boolean value indicating whether a real Human is going to give feedback; if
+            True, a human gives feedback; if False, the source specified under feedback_policy_type is used
+     - feedback_policy_type - specifies the feedback strategy that is used (i.e. action, raw_evaluative, etc)
+     - agent_policy - specifies whether to make the agent deterministic (i.e. act greedily via argmax), or if
+            it should choose its actions stochastically
+     - trajectory_length - an integer N, such that the agent always takes at most N actions before feedback is given
+            (if the agent ends at the goal, then early termination occurs). This also specifies the max length of the
+            trajectory that a human must give if giving action or trajectory feedback.
     """
     tensor_time = []
     pi, Q, loss, rk = None, None, None, None
@@ -41,47 +57,74 @@ def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_h
         trial_data = Trial((r,c), g, cg.current_reward_estimate(), cg.env.get_world())
         trial_data.register_feedback_type(cg.env.SCALAR_FEEDBACK)
         trial_data.register_feedback_type(cg.env.ACTION_FEEDBACK)
+        trial_data.register_feedback_type(cg.env.TRAJECTORY_FEEDBACK)
+        trial_data.register_feedback_type(cg.env.TRAJECTORY_SET_FEEDBACK)
         trial_data.register_feedback_type(cg.env.NO_FEEDBACK)
         trial_buffer.register_trial(trial_data)
 
         steps = 0
         while cg.env.world[r,c] != g and steps < max_steps:
             ## Agent Plans an action given the current state, based on current policy
-            action, local_policy = cg.chooseAction(r, c)
+            ## TODO: Support trajectories here
+            ## r,c is the initial state
+            ## rt, ct represent states with in the trajectory
+            rt, ct = r, c
+            state_action_seq = []
+            for _ in range(trajectory_length):
+                action, local_policy = cg.chooseAction(rt, ct)
+                state_action_seq.append(((rt, ct), action))
+                rt, ct = cg.env.step(rt,ct, action)
 
+            ## Agent decides what type of feedback to request (this is an active learning choice)
             if cg.request_feedback(r, c, force=force_feedback):
 
                 ## Tell the human what action the agent plans to take from the current state:
                 print(f"Agent is currently at ({r},{c}) on {cg.env.world[r,c]}")
                 cg.env.visualize_environment(r,c)
-                cg.env.inform_human(action)
+                cg.env.inform_human(state_action_seq)
 
                 ## Get feedback for the planned action before actually taking it.
-                ##feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=True, feedback_policy_type="human")
-                feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=source_is_human, feedback_policy_type=feedback_policy_type, agent_cg=cg)
-                feedback = None
+                ## NOTE: With teacher automation, we remove the feedback classification and translation from strings
+                feedback, feedback_type = cg.env.acquire_feedback(state_action_seq, r, c, source_is_human=source_is_human, feedback_policy_type=feedback_policy_type, agent_cg=cg)
                 ## Classify the feedback
-                feedback_type = cg.env.classify_feedback(feedback_str)
+                #feedback_type = cg.env.classify_feedback(feedback_str)
                 if feedback_type == cg.env.SCALAR_FEEDBACK:
                     print("Scalar Feedback Provided")
                     scalar = cg.env.feedback_to_scalar(feedback_str)
                     feedback = scalar
                     pi, Q, loss, rk = cg.scalar_update(scalar, action, r, c)
                     print(f"Updated reward: {rk}")
+                    trial_data.add_transition(
+                        steps, cg.current_reward_estimate(),
+                        (r,c), state_action_seq, local_policy, feedback_type, feedback
+                    )
 
                 elif feedback_type == cg.env.ACTION_FEEDBACK:
                     print("Action Feedback Provided")
                     #Collect Trajectories
-                    trajacts, trajcoords = cg.env.feedback_to_demonstration(feedback_str, r, c)
-                    feedback = trajacts[0]
+                    trajectory = feedback
+                    #trajacts, trajcoords = cg.env.feedback_to_demonstration(feedback_str, r, c)
+                    #feedback = trajacts[0]
                     # trajacts, trajcoords = cg.env.acquire_human_demonstration(max_length=1)
+                    trial_data.add_transition(
+                        steps, cg.current_reward_estimate(),
+                        (r,c), state_action_seq, local_policy, feedback_type, feedback
+                    )
+                elif feedback_type == cg.env.TRAJECTORY_FEEDBACK:
+                    print("Trajectory Feedback Provided:")
+                    #Collect Trajectories
+                    trajectory = feedback
+                    cg.env.inform_human(trajectory)
+                    #trajacts, trajcoords = cg.env.feedback_to_demonstration(feedback_str, r, c)
+                    #feedback = trajacts[0]
+                    # trajacts, trajcoords = cg.env.acquire_human_demonstration(max_length=1)
+                    trial_data.add_transition(
+                        steps, cg.current_reward_estimate(),
+                        (r,c), state_action_seq, local_policy, feedback_type, feedback
+                    )
                 else:
                     print("Invalid feedback provided. Ignoring.")
 
-                trial_data.add_transition(
-                    steps, cg.current_reward_estimate(),
-                    (r,c), action, local_policy, feedback_type, feedback
-                )
 
                 if feedback_type == cg.env.ACTION_FEEDBACK:
                     ## Update the reward function based on a batch of expert transitions from
@@ -97,6 +140,20 @@ def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_h
 
                     cg.compute_expert_loss(pi, [feedback], [(r,c)])
                     print(f"Updated reward: {rk}")
+                if feedback_type == cg.env.TRAJECTORY_FEEDBACK:
+                    ## Update the reward function based on a batch of expert transitions from
+                    ## the feedback buffer
+                    batch_transitions = trial_buffer.sample_feedback_type(cg.env.TRAJECTORY_FEEDBACK, 100)
+                    ## Convert transitions to trajacts, trajcoords
+                    trajectories = [tr.feedback_value for tr in batch_transitions]
+                    pi, Q, loss, rk = cg.trajectory_update(trajectories)
+
+                    ## Because the reward in the transition should be from AFTER feedback
+                    trial_data.update_last_transition_reward(cg.current_reward_estimate())
+
+                    #cg.compute_expert_loss(pi, [feedback], [(r,c)])
+                    cg.compute_expert_trajectory_loss(pi, feedback)
+                    print(f"Updated reward: {rk}")
                 print(cg.recorded_losses)
             else:
                 trial_data.add_transition(
@@ -107,7 +164,8 @@ def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_h
             ## endif cg.request_feedback()
 
             ## Perform actual transition
-            r,c = cg.env.step(r,c, action)
+            r, c = rt, ct
+            ##r,c = cg.env.step(r,c, action)
             steps += 1
 
         if steps == max_steps:
@@ -896,8 +954,9 @@ def parse_args():
     parser.add_argument('--prepopulate', help='prepopulate with action feedback',
         dest='prepopulate', action='store_true')
     parser.add_argument('--feedback_policy',
-        default="human", choices=["human","action", "evaluative", "mixed",
-            "r1_evaluative", "ranked_evaluative", "raw_evaluative", "policy_evaluation", "ranked_policy_evaluation"],
+        default="human", choices=["human", "action", "evaluative", "mixed",
+            "r1_evaluative", "ranked_evaluative", "raw_evaluative", "policy_evaluation", "ranked_policy_evaluation",
+            "1_step_corrective", "init_demonstration", "set_demonstration", "selective_demonstration", "comparisons"],
         help='specify the feedback policy to use')
     parser.add_argument('--hide', help='hide plots, used for autosaving plots',
         dest='hide', action='store_true')
@@ -907,6 +966,14 @@ def parse_args():
     parser.add_argument('--groupings', help='keyword groupings', nargs='+')
     parser.add_argument('--seed', help='specifies a random seed', type=int,
         default=np.random.default_rng().integers(1000000))
+    parser.add_argument('--policy',
+        default="deterministic", choices=["deterministic", "stochastic"],
+         help='sets the agent policy to be detetministic, stochastic, etc')
+    parser.add_argument('--trajectory_len', type=int,
+        default=1, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+         help='determinds the maximum length trajectory between giving feedback (agent takes N steps), human provides (N step trajectory)')
+    parser.add_argument('--episodes', type=int,
+        default=10, help='determines number of episodes for which to train the agent for. Default is 10')
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -967,8 +1034,9 @@ if __name__ == '__main__':
             print("Prepopulating trial data")
             prepop_trial_data = prepopulate(cg)
         source_is_human = (args.feedback_policy == "human")
-        episodes = 10
-        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data, force_feedback, source_is_human, args.feedback_policy)
+        episodes = args.episodes
+        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data,
+            force_feedback, source_is_human, args.feedback_policy, args.policy, args.trajectory_len)
     elif args.mode == "test":
         if args.dataset is None:
             print(f"Dataset path must be specified.")
