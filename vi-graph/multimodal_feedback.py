@@ -154,6 +154,130 @@ def compute_effort(data, cg):
 
     return effort, dist
 
+def compute_policy_eval_metrics(data, cg):
+    """
+    Computes policy goal success as defined in `compute_goal_success`
+    Computes policy violations as defined in `compute_violations`
+
+    We combine all the evaluations here so that we don't have to do planning
+    more than once per time step
+    """
+    nrows, ncols = cg.env.world.shape
+    acts = cg.env.actions
+    grid_map = cg.env.world
+
+    ## Helpers for goal success
+    def plan(rs, cs, pi, can_reach, steps, max_steps):
+        r, c = rs, cs
+        success = 0
+        while steps < max_steps:
+            if grid_map[r][c] == 4 or can_reach[r*ncols + c] > 0.5:
+                success = 1
+                break
+            maxprob = max(pi[r*ncols+c, :])
+            a = 6
+            for ana in range(5):
+                if pi[r*ncols+c, ana] == maxprob: a = ana
+            r += acts[a][0]
+            c += acts[a][1]
+            steps += 1
+        return success
+
+    def goalSuccess(pi):
+        """
+        For every possible state, does planning with
+        the current policy lead to the goal state?
+        """
+        success = np.zeros(nrows*ncols)
+        for i in range(nrows):
+            for j in range(ncols):
+                success[i*ncols + j] = plan(i, j, pi, success, 0, nrows*ncols)
+        return np.mean(success)
+    
+    ## Helpers for violations
+    def policyViolations(pi, do_print=True):
+        violation_map = np.zeros((nrows, ncols))
+        iteration_map = np.zeros((nrows, ncols))
+        for i in range(nrows):
+            for j in range(ncols):
+                grid = []
+                for r in range(nrows):
+                    line = []
+                    for c in range(ncols):
+                        line += [6]
+                    grid += [line]
+                it, viol = stateViolations(grid, pi, i, j)
+                violation_map[i][j] = viol
+                iteration_map[i][j] = it
+        if do_print:
+            print("Policy Violation Map:")
+            print(violation_map)
+            print("Iteration Map:")
+            print(iteration_map)
+            print("Average Policy Violation Count: " + str(np.mean(violation_map)))
+            # print("Standard Deviation Violation Count: " + str(round(np.std(violation_map), 3)))
+            print("Average Iteration Count: " + str(np.mean(iteration_map)))
+            # print("Standard Deviation Iteration Count: " + str(round(np.std(iteration_map), 3)))
+        return iteration_map, violation_map
+        # returns number of violations in a state
+
+    def stateViolations(grid, pi, r, c):
+        if grid[r][c] != 6: return (0, 0)
+        maxprob = max(pi[r*ncols+c, :])
+        a = 6
+        for ana in range(5):
+            if pi[r*ncols+c, ana] == maxprob: a = ana
+        grid[r][c] = a
+        r += acts[a][0]
+        c += acts[a][1]
+        it, viol = stateViolations(grid, pi, r, c)
+        if grid[r][c] < 4:
+            it += 1
+        tile_type = grid_map[r][c]
+        if tile_type == 1 or tile_type == 2 or tile_type == 3:
+            viol += 1
+        if tile_type == 0 and a == 4:
+            viol += 1 ## Violation by staying in the 0 zone
+        return (it, viol)
+    
+    goal_rate_per_trial = []
+    violations_per_trial = []
+    detailed_violations_per_trial = []
+    for trial in data:
+        goal_rate = []
+        violations = []
+
+        r = trial.reward_estimate
+        print(f'Reawrd Estimate: {r}')
+        cg.env.world = trial.grid_map
+        cg.set_reward_estimate(r)
+        pi, Q, _ = cg.forward()
+
+        ## Goal success
+        success_rate = goalSuccess(pi)
+        goal_rate.append(success_rate)
+        ## Violations
+        iteration_map, violation_map = policyViolations(pi)
+        violations.append((np.mean(iteration_map),np.mean(violation_map)))
+        detailed_violations_per_trial.append((iteration_map, violation_map))
+
+        for transition in trial.transitions:
+            r = transition.reward_estimate
+            print(f'Reawrd Estimate: {r}')
+            cg.set_reward_estimate(r)
+            pi, Q, _ = cg.forward()
+
+            ## Goal success
+            success_rate = goalSuccess(pi)
+            goal_rate.append(success_rate)
+            ## Violations
+            iteration_map, violation_map = policyViolations(pi)
+            violations.append((np.mean(iteration_map),np.mean(violation_map)))
+            detailed_violations_per_trial.append((iteration_map, violation_map))
+        goal_rate_per_trial.append(goal_rate)
+        violations_per_trial.append(violations)
+    return violations_per_trial, detailed_violations_per_trial, goal_rate_per_trial
+
 def compute_goal_success(data, cg):
     """
     Computes the goal success at each timestep
@@ -371,7 +495,7 @@ def plot_group_violations(
     }
     #color_list = ['blue','green', 'red', 'cyan', 'magenta', 'yellow', 'black']
     #color_list = ['magenta','gold', 'green', 'blue', 'red', 'cyan', 'black']
-    color_list = ['blue','red', 'green', 'cyan', 'magenta', 'yellow', 'black']
+    color_list = ['C0','C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10']
     colors = {k:v for k,v in zip(group_violations, color_list)}
 
     print(group_violations)
@@ -913,6 +1037,8 @@ def parse_args():
         default=0.90, help='discount factor to use')
     parser.add_argument('--alpha', type=float,
         default=0.001, help='learning rate to use')
+    parser.add_argument('--group_alphas', nargs='+', help='For hyperparameter sweeps', default=None)
+    parser.add_argument('--group_gammas', nargs='+', help='For hyperparameter sweeps', default=None)
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -1012,6 +1138,17 @@ if __name__ == '__main__':
         group_prn = {grp:None for grp in args.groupings} ## Percent None
         group_num = {grp:0 for grp in args.groupings}
 
+        d_hypers = dict()
+        grp_idx = 0
+        for grp in args.groupings:
+            grp_hyper = dict()
+            if args.group_alphas is not None and len(args.group_alphas) == len(args.groupings):
+                grp_hyper['alpha'] = float(args.group_alphas[grp_idx])
+            if args.group_gammas is not None and len(args.group_gammas) == len(args.groupings):
+                grp_hyper['gamma'] = float(args.group_gammas[grp_idx])
+            grp_idx = grp_idx + 1
+            d_hypers[grp] = grp_hyper
+
         for dataset in args.inputs:
             if not os.path.isfile(dataset):
                 print(f"Dataset path is not a file.")
@@ -1035,9 +1172,15 @@ if __name__ == '__main__':
                     t.feedback_indices[cg.env.ACTION_FEEDBACK] = []
                     t.feedback_indices[cg.env.SCALAR_FEEDBACK] = []
 
-            all_violations, detailed_violations = compute_violations(all_training_data, cg)
+            ## Set the hyperparameters for this dataset if they were provided
+            for grp in args.groupings:
+                if grp in dataset:
+                    cg.set_hyperparameters(d_hypers[grp])
+
+            all_violations, detailed_violations, goal_success_rates = compute_policy_eval_metrics(all_training_data, cg)
+            # all_violations, detailed_violations = compute_violations(all_training_data, cg)
             violations_dict = min_mean_max_violations(all_violations)
-            goal_success_rates = compute_goal_success(all_training_data, cg)
+            # goal_success_rates = compute_goal_success(all_training_data, cg)
             goal_success_dict = min_mean_max_goal_success(goal_success_rates)
             trial_efforts, effort_dist = compute_effort(all_training_data, cg)
             ## Percentage Action / Scalar

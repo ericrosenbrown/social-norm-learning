@@ -69,14 +69,39 @@ class ComputationGraph:
         self.recorded_losses = ComputationGraph.lossdict()
         self.recorded_losses.set_decode({0: 'U', 1: 'R', 2: 'D', 3: 'L', 4: 'S'})
 
+    def dump_hyperparameters(self):
+        return {
+            'alpha': self.learning_rate,
+            'gamma': self.gamma,
+            'beta':  self.beta,
+            'horizon': self.horizon,
+            'num_updates': self.num_updates}
+
+    def set_hyperparameters(self, d):
+        hypers = {'alpha': self.set_alpha,
+            'gamma': self.set_gamma,
+            'beta': self.set_beta,
+            'horizon': self.set_horizon,
+            'num_updates': self.set_num_updates}
+
+        for k, v in hypers.items():
+            if k in d:
+                v(d[k])
+
     def set_gamma(self, g):
         self.gamma = g
 
     def set_alpha(self, a):
         self.alpha = a
+    
+    def set_beta(self, b):
+        self.beta = b
 
     def set_horizon(self, h):
         self.horizon = h
+    
+    def set_num_updates(self, n):
+        self.num_updates = n
 
     def set_reward_estimate(self, r):
         self.rk = torch.tensor(r, dtype=self.dtype, requires_grad=True)
