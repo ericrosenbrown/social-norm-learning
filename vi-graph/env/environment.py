@@ -85,7 +85,7 @@ class Environment:
         """
         pass
 
-    def acquire_feedback(self, action_idx, r, c, source_is_human=True, feedback_policy_type="action", agent_cg=None):
+    def acquire_feedback(self, action_idx, r, c, source_is_human=True, feedback_policy_type="action", agent_cg=None, mixed_strat=None, mixed_percent=0.50):
         """
         Acquires feedback from a source
 
@@ -122,7 +122,7 @@ class Environment:
                 print("Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2")
                 feedback_str = input("Human Feedback: ")
             else:
-                feedback_str = self.feedback_source(action_idx, r, c, feedback_policy_type, agent_cg)
+                feedback_str = self.feedback_source(action_idx, r, c, feedback_policy_type, agent_cg, mixed_strat, mixed_percent)
             valid = False
         return feedback_str
 
@@ -153,7 +153,7 @@ class Environment:
         """
         return [self.action_feedback_map[feedback]], [(r,c)]
 
-    def feedback_source(self, action, r, c, feedback_policy_type, agent_cg):
+    def feedback_source(self, action, r, c, feedback_policy_type, agent_cg, mixed_strat, mixed_percent):
         """
         A simulator for providing feedback.
         This function is called from acquire_feedback()
@@ -184,6 +184,43 @@ class Environment:
                 ("w","w","a","a","a","w","w","d","d","w")
             )
             return feedback_map[r][c]
+
+        if feedback_policy_type == "action_path_cost":
+            """
+            Computes optimal action using the strategy in r1_evaluative
+            """
+            if self.need_simulated_evaluative_feedback:
+                goal_state = tuple(np.argwhere(self.world == 4)[0])
+                prob = GridWorldProblem(self, goal_state, goal_state)
+                search_problem = GridWorldSearch(prob)
+                costs, paths = search_problem.cost_to_goal()
+                self.need_simulated_evaluative_feedback = False
+                ## NOTE: These are the base costs from each point in the grid to the goal IF taking the shortest
+                ## path. When decision making, need to add the cost of transitioning from the current state
+                ## TO one of these cells to determine the actual cost of taking an action
+                ## Example for world 1:
+                ##   [[ 13.  12.  13.   8.   7.   6.   5.   4.   1.   0.]
+                ##    [ 12.  11.  10.   7.   6.   5.   4.   3.   2.   1.]
+                ##    [ 11.  10.   9.   8.   7.   6.   5.   4.   3.   2.]
+                ##    [ 12.  11.  10.   9.   8.   7.   6.   5.   4.   3.]
+                ##    [ 13.  12.  13.  14.  15. 107. 106.   6.   5.   4.]]
+                ##
+                self._costs = costs
+                self._paths = paths
+                prob.set_forward(forward=True)
+                self._problem = prob
+                self.idx2act = ["w","d","s","a","stay"]
+
+            decision_costs = np.zeros(len(self.actions))
+            for idx in range(len(self.actions)):
+                a = self.actions[idx]
+                next_state = self._problem.transition((r,c), a)
+                edge_cost = self._problem.transition_cost((r,c), a, next_state)
+                decision_costs[idx] = self._costs[next_state] + edge_cost
+
+            mapped_advantage = (decision_costs.argsort().argsort() - 2)*(-1)
+            a_idx = np.argmax(mapped_advantage)
+            return self.idx2act[a_idx]
 
         if feedback_policy_type == "r1_evaluative":
             """
@@ -218,6 +255,7 @@ class Environment:
                 self._paths = paths
                 prob.set_forward(forward=True)
                 self._problem = prob
+                self.idx2act = ["w","d","s","a","stay"]
 
             ## NOTE: Feedback is "advantage-based" in this scenario in that the (a,s') pairs are ranked according to
             ## the lowest cost of s'.
@@ -355,10 +393,10 @@ class Environment:
             ### Create a static mixture of the action and evaluative feedback
             ### Create a dynamic mixture of action and evaluative feedback (distribution changes over time)
             ### Create a mixture dependent on the history of the state, action, feedback encountered
-            if self.rng.uniform() < 0.5:
-                return self.feedback_source(action, r, c, "action")
+            if self.rng.uniform() < mixed_percent:
+                return self.feedback_source(action, r, c, mixed_strat[0], agent_cg, mixed_strat, mixed_percent)
             else:
-                return self.feedback_source(action, r, c, "evaluative")
+                return self.feedback_source(action, r, c, mixed_strat[1], agent_cg, mixed_strat, mixed_percent)
 
     def policy_evaluation(self, reward_func, policy):
         """

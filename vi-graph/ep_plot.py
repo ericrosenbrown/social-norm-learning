@@ -154,6 +154,169 @@ def compute_effort(data, cg):
 
     return effort, dist
 
+
+def extract_policies(data, cg, last_only=False):
+    """
+    Computes and saves the policies from each episode
+    """
+    as_numpy = True
+    policies = []
+    for trial in data:
+        ## Full metric calculations for every single timestep in the trial
+        if not last_only:
+            r = trial.reward_estimate
+            print(f'Reawrd Estimate: {r}')
+            cg.env.world = trial.grid_map
+            cg.set_reward_estimate(r)
+            pi, Q, _ = cg.forward(as_numpy)
+            policies.append(pi)
+            for transition in trial.transitions:
+                r = transition.reward_estimate
+                print(f'Reawrd Estimate: {r}')
+                cg.set_reward_estimate(r)
+                pi, Q, _ = cg.forward(as_numpy)
+                policies.append(pi)
+        ## Full metric calculation only for the last timestep in the trial
+        else:
+            r = trial.transitions[-1].reward_estimate
+            print(f'Reawrd Estimate: {r}')
+            cg.env.world = trial.grid_map
+            cg.set_reward_estimate(r)
+            pi, Q, _ = cg.forward(as_numpy)
+            policies.append(pi)
+
+    return policies
+
+def save_policy_metrics(policies, cg, which="both"):
+    nrows, ncols = cg.env.world.shape
+    acts = cg.env.actions
+    grid_map = cg.env.world
+
+    ## Helpers for goal success
+    def transition(r, c, a):
+        r_next = r + acts[a][0]
+        c_next = c + acts[a][1]
+        r_next = min(r_next, nrows-1)
+        r_next = max(r_next, 0)
+        c_next = min(c_next, ncols-1)
+        c_next = max(c_next, 0)
+        return r_next, c_next
+    def plan(rs, cs, pi, can_reach, steps, max_steps):
+        """
+        This does greedy planning
+        """
+        r, c = rs, cs
+        success = 0
+        while steps < max_steps:
+            if grid_map[r][c] == 4 or can_reach[r*ncols + c] > 0.5:
+                success = 1
+                break
+            a = np.argmax(pi[r*ncols+c])
+            r, c = transition(r, c, a)
+            steps += 1
+        return success
+
+    def goalSuccess(pi):
+        """
+        Deterministic goal success, with a greedy policy
+        For every possible state, does planning with
+        the current policy lead to the goal state?
+        """
+        success = np.zeros(nrows*ncols)
+        for i in range(nrows):
+            for j in range(ncols):
+                success[i*ncols + j] = plan(i, j, pi, success, 0, nrows*ncols)
+        return np.mean(success)
+    
+    ## Helpers for violations
+    def policyViolations(pi, do_print=True):
+        """
+        Perform deterministic policy violations on rollouts:
+        Starting in every state, do greedy policy rollouts until:
+            - all states are visited, or
+            - a loop is formed (a previous state is revisited)
+        """
+        violation_map = np.zeros((nrows, ncols))
+        iteration_map = np.zeros((nrows, ncols))
+        for i in range(nrows):
+            for j in range(ncols):
+                grid = np.ones((nrows,ncols), dtype=int)
+                grid *= 6
+                it, viol = stateViolations(grid, pi, i, j)
+                violation_map[i][j] = viol
+                iteration_map[i][j] = it
+        if do_print:
+            print("Policy Violation Map:")
+            print(violation_map)
+            print("Iteration Map:")
+            print(iteration_map)
+            print("Average Policy Violation Count: " + str(np.mean(violation_map)))
+            # print("Standard Deviation Violation Count: " + str(round(np.std(violation_map), 3)))
+            print("Average Iteration Count: " + str(np.mean(iteration_map)))
+            # print("Standard Deviation Iteration Count: " + str(round(np.std(iteration_map), 3)))
+        return iteration_map, violation_map
+        # returns number of violations in a state
+
+    def stateViolations(grid, pi, r, c):
+        """
+        Compute violations under a greedy deterministic policy
+        """
+        if grid[r][c] != 6: return (0, 0)
+        a = np.argmax(pi[r*ncols+c])
+        #maxprob = max(pi[r*ncols+c, :])
+        #a = 6
+        ## NOTE: Under below setup, the last max will be chosen.
+        #for ana in range(5):
+        #    if pi[r*ncols+c, ana] == maxprob: a = ana
+        grid[r][c] = a
+        #r += acts[a][0]
+        #c += acts[a][1]
+        r, c = transition(r, c, a)
+        it, viol = stateViolations(grid, pi, r, c)
+        if grid[r][c] < 4:
+            it += 1
+        tile_type = grid_map[r][c]
+        if tile_type == 1 or tile_type == 2 or tile_type == 3:
+            viol += 1
+        if tile_type == 0 and a == 4:
+            viol += 1 ## Violation by staying in the 0 zone
+        return (it, viol)
+
+    if which == "both":
+        arr_goal_rates = np.zeros(len(policies))
+        arr_violations = np.zeros(len(policies))
+
+        idx = 0
+        for policy in policies:
+            ## Goal success
+            success_rate = goalSuccess(policy)
+            arr_goal_rates[idx] = success_rate
+            ## Violations
+            iteration_map, violation_map = policyViolations(policy)
+            arr_violations[idx] = np.mean(violation_map)
+            idx += 1
+        return arr_goal_rates, arr_violations
+
+    if which == "dpv":
+        arr_violations = np.zeros(len(policies))
+        idx = 0
+        for policy in policies:
+            ## Violations
+            iteration_map, violation_map = policyViolations(policy)
+            arr_violations[idx] = np.mean(violation_map)
+            idx += 1
+        return arr_violations
+
+    if which == "dgs":
+        arr_goal_rates = np.zeros(len(policies))
+        idx = 0
+        for policy in policies:
+            ## Goal success
+            success_rate = goalSuccess(policy)
+            arr_goal_rates[idx] = success_rate
+            idx += 1
+        return arr_goal_rates
+
 def compute_policy_eval_metrics(data, cg, last_only=False):
     """
     Computes policy goal success as defined in `compute_goal_success`
@@ -1035,8 +1198,19 @@ def plot_losses(demonstration_losses, save_prefix, show=True):
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--mode', help='"train", "test", or "plot" mode', required=True, type=str)
+    parser.add_argument('--mode', help='"train", "test", or "plot" mode', required=True, type=str,
+        choices=["train","test","plot","extract_policies", "single_group_metric"])
+    parser.add_argument('--evalmetric', help='"dgs", "dpv", "sgs", "spv"', type=str,
+        choices=["dgs","dpv","sgs","spv"], default=None)
+    parser.add_argument('--saveplot', type=str)
+    parser.add_argument('--plottitle', type=str)
+    parser.add_argument('--xlabel', type=str)
+    parser.add_argument('--ylabel', type=str)
+    parser.add_argument('--ylo', type=float)
+    parser.add_argument('--yhi', type=float)
+    parser.add_argument('--scale', type=float)
     parser.add_argument('--dataset', help='path to dataset', type=str)
+    parser.add_argument('--style', help='plot style', type=str)
     parser.add_argument('--prepopulate', help='prepopulate with action feedback',
         dest='prepopulate', action='store_true')
     parser.add_argument('--feedback_policy',
@@ -1098,6 +1272,13 @@ def prepopulate(cg):
     return prepop_trial_data
 
 if __name__ == '__main__':
+    """
+    Plotting has been decomposed into 3 steps:
+        (1) Policy extraction
+        (2) Single group metric computations
+        (3) Plotting, which plots the specified metrics together
+    """
+
     args = parse_args()
     all_training_data = None
     demonstration_losses = None
@@ -1127,46 +1308,12 @@ if __name__ == '__main__':
             print(f"Mixed strategy components must be specified if a mixed strategy is used")
             exit()
         ## Need to put a check here to confirm that strategy types present here are valid
-
-    if args.mode == "train":
-        if args.prepopulate:
-            print("Prepopulating trial data")
-            prepop_trial_data = prepopulate(cg)
-        source_is_human = (args.feedback_policy == "human")
-        episodes = args.episodes
-        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data, force_feedback, source_is_human, args.feedback_policy, args.mixed_strat, args.mixed_percent)
-    elif args.mode == "test":
-        if args.dataset is None:
-            print(f"Dataset path must be specified.")
-            exit()
-
-        if not os.path.isfile(args.dataset):
-            print(f"Dataset path is not a file.")
-            exit()
-
-        with open(args.dataset, 'rb') as f:
-            all_training_data = pickle.load(f)
-            ## Check if we have the loss saved in the pickle file
-            try:
-                demonstration_losses = pickle.load(f)
-            except EOFError:
-                print("No demonstration losses in this dataset")
-    elif args.mode == "plot":
+    elif args.mode == "extract_policies":
+        ## Policy extract is the only portion of plotting that requires hyperparameters to be set
         plt.rcParams.update({'font.size': 20})
         if args.inputs is None or len(args.inputs) == 0:
             print(f'input datasets must be specified')
             exit()
-        ## Plot violation averages, maxes, and mins
-        group_avg = {grp:None for grp in args.groupings} ## Violations
-        group_gsr = {grp:None for grp in args.groupings} ## Goal Success Rate
-        group_eff = {grp:None for grp in args.groupings} ## Effort
-        group_act = {grp:None for grp in args.groupings} ## Action Effort
-        group_sca = {grp:None for grp in args.groupings} ## Scalar Effort
-        group_non = {grp:None for grp in args.groupings} ## None   Effort
-        group_pra = {grp:None for grp in args.groupings} ## Percent Action
-        group_prs = {grp:None for grp in args.groupings} ## Percent Scalar
-        group_prn = {grp:None for grp in args.groupings} ## Percent None
-        group_num = {grp:0 for grp in args.groupings}
 
         d_hypers = dict()
         grp_idx = 0
@@ -1207,183 +1354,131 @@ if __name__ == '__main__':
                 if grp in dataset:
                     cg.set_hyperparameters(d_hypers[grp])
 
-            all_violations, detailed_violations, goal_success_rates = compute_policy_eval_metrics(all_training_data, cg, last_only=args.lastonly)
-            # all_violations, detailed_violations = compute_violations(all_training_data, cg)
-            violations_dict = min_mean_max_violations(all_violations)
-            # goal_success_rates = compute_goal_success(all_training_data, cg)
-            goal_success_dict = min_mean_max_goal_success(goal_success_rates)
-            trial_efforts, effort_dist = compute_effort(all_training_data, cg)
-            ## Percentage Action / Scalar
-            num_action = np.array(effort_dist[cg.env.ACTION_FEEDBACK])
-            num_scalar = np.array(effort_dist[cg.env.SCALAR_FEEDBACK])
-            num_none   = np.array(effort_dist[cg.env.NO_FEEDBACK])
-            total_num  = num_action + num_scalar + num_none
-            per_action = num_action / total_num
-            per_scalar = num_scalar / total_num
-            per_none   = num_none   / total_num
-
-            ## Determine which group this dataset belongs to
-            for grp, grp_avg in group_avg.items():
-                if grp in dataset:
-                    if grp_avg is None:
-                        group_avg[grp] = dict(violations_dict)
-                        group_num[grp] = 1
-                        group_gsr[grp] = dict(goal_success_dict)
-                        group_eff[grp] = {
-                            'min': np.array(trial_efforts),
-                            'avg': np.array(trial_efforts),
-                            'max': np.array(trial_efforts)
-                        }
-                        group_act[grp] = {
-                            'min': np.array(num_action),
-                            'avg': np.array(num_action),
-                            'max': np.array(num_action)
-                        }
-                        group_sca[grp] = { 
-                            'min': np.array(num_scalar),
-                            'avg': np.array(num_scalar),
-                            'max': np.array(num_scalar)
-                        }
-                        group_non[grp] = { 
-                            'min': np.array(num_none),
-                            'avg': np.array(num_none),
-                            'max': np.array(num_none)
-                        }
-                        group_pra[grp] = {
-                            'min': np.array(per_action),
-                            'avg': np.array(per_action),
-                            'max': np.array(per_action)
-                        }
-                        group_prs[grp] = { 
-                            'min': np.array(per_scalar),
-                            'avg': np.array(per_scalar),
-                            'max': np.array(per_scalar)
-                        }
-                        group_prn[grp] = { 
-                            'min': np.array(per_none),
-                            'avg': np.array(per_none),
-                            'max': np.array(per_none)
-                        }
-                    else:
-                        ## Update running averages
-                        n = group_num[grp] + 1
-                        group_num[grp] = n
-                        if not args.lastonly:
-                            ## grp_avg contains the previous average
-                            for k in ('min', 'max', 'end', 'ini', 'len'):
-                                for idx, v in enumerate(grp_avg[k]):
-                                    group_avg[grp][k][idx] = (v*(n-1) + violations_dict[k][idx])/n
-                                for idx, v in enumerate(group_gsr[grp][k]):
-                                    group_gsr[grp][k][idx] = (v*(n-1) + goal_success_dict[k][idx])/n
-                        else:
-                            k = 'end'
-                            ## Make sure end is average of seeds
-                            for idx, v in enumerate(grp_avg[k]):
-                                group_avg[grp][k][idx] = (v*(n-1) + violations_dict[k][idx])/n
-                            for idx, v in enumerate(group_gsr[grp][k]):
-                                group_gsr[grp][k][idx] = (v*(n-1) + goal_success_dict[k][idx])/n
-                            k = 'len'
-                            ## Make sure end is average of seeds
-                            for idx, v in enumerate(grp_avg[k]):
-                                group_avg[grp][k][idx] = (v*(n-1) + violations_dict[k][idx])/n
-                            for idx, v in enumerate(group_gsr[grp][k]):
-                                group_gsr[grp][k][idx] = (v*(n-1) + goal_success_dict[k][idx])/n
-                            k = 'ini'
-                            ## Make sure end is average of seeds
-                            for idx, v in enumerate(grp_avg[k]):
-                                group_avg[grp][k][idx] = (v*(n-1) + violations_dict[k][idx])/n
-                            for idx, v in enumerate(group_gsr[grp][k]):
-                                group_gsr[grp][k][idx] = (v*(n-1) + goal_success_dict[k][idx])/n
-                            k = 'min'
-                            ## Make sure min is min of seeds
-                            for idx, v in enumerate(grp_avg[k]):
-                                group_avg[grp][k][idx] = min(v, violations_dict[k][idx])
-                            for idx, v in enumerate(group_gsr[grp][k]):
-                                group_gsr[grp][k][idx] = min(v, goal_success_dict[k][idx])
-                            k = 'max'
-                            ## Make sure min is min of seeds
-                            for idx, v in enumerate(grp_avg[k]):
-                                group_avg[grp][k][idx] = max(v, violations_dict[k][idx])
-                            for idx, v in enumerate(group_gsr[grp][k]):
-                                group_gsr[grp][k][idx] = max(v, goal_success_dict[k][idx])
-
-                        ## Update group effort statistics: Update average effort per trial
-                        ## Trial effort includes only Action and Scalar feedback counts
-                        for idx, v in enumerate(group_eff[grp]['avg']):
-                            group_eff[grp]['avg'][idx] = (v*(n-1) + trial_efforts[idx])/n
-                        for idx, v in enumerate(group_eff[grp]['min']):
-                            group_eff[grp]['min'][idx] = min(v, trial_efforts[idx])
-                        for idx, v in enumerate(group_eff[grp]['max']):
-                            group_eff[grp]['max'][idx] = max(v, trial_efforts[idx])
-
-                        ## Update Effort distribution: number of action feedback per trial
-                        for idx, v in enumerate(group_act[grp]['avg']):
-                            group_act[grp]['avg'][idx] = (v*(n-1) + effort_dist[cg.env.ACTION_FEEDBACK][idx])/n
-                        for idx, v in enumerate(group_act[grp]['min']):
-                            group_act[grp]['min'][idx] = min(v, effort_dist[cg.env.ACTION_FEEDBACK][idx])
-                        for idx, v in enumerate(group_act[grp]['max']):
-                            group_act[grp]['max'][idx] = max(v, effort_dist[cg.env.ACTION_FEEDBACK][idx])
-
-                        ## Update Effort distribution: number of action feedback per trial
-                        for idx, v in enumerate(group_pra[grp]['avg']):
-                            group_pra[grp]['avg'][idx] = (v*(n-1) + per_action[idx])/n
-                        for idx, v in enumerate(group_pra[grp]['min']):
-                            group_pra[grp]['min'][idx] = min(v, per_action[idx])
-                        for idx, v in enumerate(group_pra[grp]['max']):
-                            group_pra[grp]['max'][idx] = max(v, per_action[idx])
-
-                        ## Update Effort Distribution: number of scalar feedback per trial
-                        for idx, v in enumerate(group_sca[grp]['avg']):
-                            group_sca[grp]['avg'][idx] = (v*(n-1) + effort_dist[cg.env.SCALAR_FEEDBACK][idx])/n
-                        for idx, v in enumerate(group_sca[grp]['min']):
-                            group_sca[grp]['min'][idx] = min(v, effort_dist[cg.env.SCALAR_FEEDBACK][idx])
-                        for idx, v in enumerate(group_sca[grp]['max']):
-                            group_sca[grp]['max'][idx] = max(v, effort_dist[cg.env.SCALAR_FEEDBACK][idx])
-
-                        ## Update Effort Distribution: number of scalar feedback per trial
-                        for idx, v in enumerate(group_prs[grp]['avg']):
-                            group_prs[grp]['avg'][idx] = (v*(n-1) + per_scalar[idx])/n
-                        for idx, v in enumerate(group_prs[grp]['min']):
-                            group_prs[grp]['min'][idx] = min(v, per_scalar[idx])
-                        for idx, v in enumerate(group_prs[grp]['max']):
-                            group_prs[grp]['max'][idx] = max(v, per_scalar[idx])
-
-                        ## Update Effort Distribution: number of no feedback per trial
-                        for idx, v in enumerate(group_non[grp]['avg']):
-                            group_non[grp]['avg'][idx] = (v*(n-1) + effort_dist[cg.env.NO_FEEDBACK][idx])/n
-                        for idx, v in enumerate(group_non[grp]['min']):
-                            group_non[grp]['min'][idx] = min(v, effort_dist[cg.env.NO_FEEDBACK][idx])
-                        for idx, v in enumerate(group_non[grp]['max']):
-                            group_non[grp]['max'][idx] = max(v, effort_dist[cg.env.NO_FEEDBACK][idx])
-
-                        ## Update Effort Distribution: number of no feedback per trial
-                        for idx, v in enumerate(group_prn[grp]['avg']):
-                            group_prn[grp]['avg'][idx] = (v*(n-1) + per_none[idx])/n
-                        for idx, v in enumerate(group_prn[grp]['min']):
-                            group_prn[grp]['min'][idx] = min(v, per_none[idx])
-                        for idx, v in enumerate(group_prn[grp]['max']):
-                            group_prn[grp]['max'][idx] = max(v, per_none[idx])
-        ## Adjust the baseline (remove the first episode)
-        if 'baseline' in group_avg:
-            for k in ('min', 'max', 'end', 'ini', 'len'):
-                group_avg['baseline'][k] = group_avg['baseline'][k][1:]
-                group_gsr['baseline'][k] = group_gsr['baseline'][k][1:]
-            for k in ('min', 'avg', 'max'):
-                group_eff['baseline'][k] = group_eff['baseline'][k][1:]
-                group_act['baseline'][k] = group_act['baseline'][k][1:]
-                group_sca['baseline'][k] = group_sca['baseline'][k][1:]
-                group_non['baseline'][k] = group_sca['baseline'][k][1:]
-                group_pra['baseline'][k] = group_pra['baseline'][k][1:]
-                group_prs['baseline'][k] = group_prs['baseline'][k][1:]
-                group_prn['baseline'][k] = group_prs['baseline'][k][1:]
-        plot_group_violations(
-            group_avg, group_gsr, group_eff, 
-            group_act, group_sca, group_non,
-            group_pra, group_prs, group_prn,
-            show=show_plots
-        )
-
+            ## Policy extract is the only portion of plotting that requires hyperparameters to be set
+            policies = extract_policies(all_training_data, cg, last_only=args.lastonly)
+            with open(f"{dataset}.policy","wb") as f:
+                pickle.dump(policies, f)
         exit()
+    elif args.mode == "single_group_metric":
+        """
+        Computes the metrics for a SINGLE group of data, and saves it
+
+        A group consists of N seeds (trials), where all experimental parameters
+        are held constant. We load in the policies for each trial of M episodes.
+        The policy for the n'th seed and m'th episode is given by p_nm
+
+        An evaluation metric f() is computed according to the args.evalmetric key for
+        each policy
+
+        The data will be tabulated in the following format:
+
+        An NxM numpy array is created, with f(p_nm) in each entry
+        [ f(p_nm) ]
+
+        """
+        if args.evalmetric is None:
+            print("Evaluation Metric must be specified:")
+            print("  dgs = deterministic goal success")
+            print("  dpv = deterministic policy violations")
+            print("  sgs = stochastic goal success")
+            print("  spv = stochastic policy violations")
+            exit()
+        plt.rcParams.update({'font.size': 20})
+        if args.inputs is None or len(args.inputs) == 0:
+            print(f'input datasets must be specified')
+            exit()
+
+        if args.dataset is None:
+            print("Need to specify base_name to save dataset as")
+
+        result_arr = None
+        seed_idx = 0
+        for dataset in args.inputs:
+            if not os.path.isfile(dataset):
+                print(f"Dataset path is not a file.")
+                exit()
+            with open(dataset, 'rb') as f:
+                print(f"Loading... {dataset}")
+                policies = pickle.load(f)
+
+            if result_arr is None:
+                seeds = len(args.inputs)
+                episodes = len(policies)
+                result_arr = np.zeros((seeds, episodes))
+
+            result = None
+
+            if   args.evalmetric == "dgs":
+                result = save_policy_metrics(policies, cg, which="dgs")
+            elif args.evalmetric == "dpv":
+                result = save_policy_metrics(policies, cg, which="dpv")
+            #elif args.evalmetric == "sgs":
+
+            #elif args.evalmetric == "spv":
+
+            else:
+                exit()
+            result_arr[seed_idx] = result
+            seed_idx += 1
+
+        with open(f"{args.dataset}.{args.evalmetric}","wb") as f:
+            pickle.dump(result_arr, f)
+    elif args.mode == "plot":
+        """
+        Plot takes in a set of "single_group_metrics" and plots them
+        all on the same plot in the order they are presented
+
+        Each "single_group_metric" is assumed to the following:
+            - A N x M numpy array, where N = seeds, M = episodes
+        """
+        plt.rcParams.update({'font.size': 20})
+        if args.inputs is None or len(args.inputs) == 0:
+            print(f'input "single_group_metric"s must be specified')
+            exit()
+
+        ## Set plotting styles
+        styles = {
+            'avg': '-',
+            'med': '-.'
+        }
+        #color_list = ['blue','green', 'red', 'cyan', 'magenta', 'yellow', 'black']
+        #color_list = ['magenta','gold', 'green', 'blue', 'red', 'cyan', 'black']
+        color_list = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'black']
+        colors = {k:v for k,v in zip(args.inputs, color_list)}
+
+        for dataset in args.inputs:
+            if not os.path.isfile(dataset):
+                print(f"Dataset path is not a file.")
+                exit()
+            with open(dataset, 'rb') as f:
+                print(f"Loading... {dataset}")
+                data = pickle.load(f)
+
+            ## Compute all the statistics of this dataaset
+            data_avg = np.mean(data,axis=0)
+            data_std = np.std(data, axis=0)
+            data_min = np.min(data, axis=0)
+            data_max = np.max(data, axis=0)
+            data_med = np.median(data, axis=0)
+            data_upper = np.quantile(data, axis=0, q=0.84, interpolation='linear')
+            data_lower = np.quantile(data, axis=0, q=0.16, interpolation='linear')
+            x = [n+1 for n in range(len(data_avg))]
+
+            if args.style == "std":
+                plt.fill_between(x, data_avg - data_std*args.scale, data_avg + data_std*args.scale, color=colors[dataset], alpha=0.1)
+            #plt.fill_between(x, data_min, data_max, color=colors[dataset], alpha=0.05)
+            elif args.style == "quantile":
+                plt.fill_between(x, data_lower, data_upper, color=colors[dataset], alpha=0.1)
+            plt.plot(x, data_avg, linestyle=styles["avg"], color=colors[dataset])
+            plt.plot(x, data_med, linestyle=styles["med"], color=colors[dataset], alpha=0.5)
+
+        if args.ylo is not None and args.yhi is not None:
+            plt.ylim([args.ylo, args.yhi])
+        plt.xlabel(args.xlabel)
+        plt.ylabel(args.ylabel)
+        plt.title(args.plottitle)
+        plt.savefig(args.saveplot, bbox_inches='tight')
+        plt.close()
     else:
         print(f"Mode must be train or test")
         exit()
