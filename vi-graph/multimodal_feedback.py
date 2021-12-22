@@ -1062,10 +1062,12 @@ def parse_args():
     parser.add_argument('--group_alphas', nargs='+', help='For hyperparameter sweeps', default=None)
     parser.add_argument('--group_gammas', nargs='+', help='For hyperparameter sweeps', default=None)
     parser.add_argument('--mixed_strat', nargs='+', help='Pair of strategies to consider', default=["action_path_cost", "r1_evaluative"])
+    
+    world_choices =[x for x in range(Worlds.max_idx+1)]
     parser.add_argument('--mixed_percent', type=float, help='Probability of following first strat in mixed strat on each timestep', default=0.5)
     parser.add_argument('--world', type=int,
         help='Integer index of the world to train in', default=0,
-        choices=[range(Worlds.max_idx)])
+        choices=world_choices)
     return parser.parse_args()
 
 def prepopulate(cg):
