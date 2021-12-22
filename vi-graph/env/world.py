@@ -7,7 +7,9 @@ class Worlds:
     # up, right, down, left, stay
     act_map = [[-1,0],[0,1],[1,0],[0,-1],[0,0]]
     act_name = ["UP","RIGHT","DOWN","LEFT","STAY"]
-    
+   
+    max_idx = 3
+
     @staticmethod
     def define_worlds():
         """
@@ -45,6 +47,12 @@ class Worlds:
             [0,0,0,0,1,1,1,0,0,0]]))
         state_starts.append([4,0])
         viz_starts.append([4,0])
+
+        grid_maps.append(np.array([
+            [2,4],
+            [0,1]]))
+        state_starts.append([1,0])
+        viz_starts.append([1,0])
 
         return grid_maps, state_starts, viz_starts
 

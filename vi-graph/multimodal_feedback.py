@@ -1063,6 +1063,9 @@ def parse_args():
     parser.add_argument('--group_gammas', nargs='+', help='For hyperparameter sweeps', default=None)
     parser.add_argument('--mixed_strat', nargs='+', help='Pair of strategies to consider', default=["action_path_cost", "r1_evaluative"])
     parser.add_argument('--mixed_percent', type=float, help='Probability of following first strat in mixed strat on each timestep', default=0.5)
+    parser.add_argument('--world', type=int,
+        help='Integer index of the world to train in', default=0,
+        choices=[range(Worlds.max_idx)])
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -1102,7 +1105,7 @@ if __name__ == '__main__':
     all_training_data = None
     demonstration_losses = None
     ## Select a world
-    idx = 0
+    idx = args.world
     grid_maps, state_starts, viz_starts = Worlds.define_worlds()
     env = Environment(grid_maps[idx], state_starts[idx], viz_starts[idx], Worlds.categories)
     gamma = args.gamma
