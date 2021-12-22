@@ -37,6 +37,8 @@ class Environment:
         self.matrix_map = None
         self.rng = np.random.default_rng()
 
+        self.violation_matrix = None
+
     def flattened_sas_transitions(self):
         """
         Returns 1D version of (s,a,s') map
@@ -532,6 +534,124 @@ class Environment:
             yield r, c
             n = (n + 1) % total
 
+    def get_violation_matrix(self):
+        if self.violation_matrix is None:
+            self.violation_matrix = self.compute_violation_matrix()
+        return self.violation_matrix
+
+    def simulate_markov_chain(self, pi, steps):
+        """
+        G: S x A -> S is the environment transition function (it returns
+        the state you will be in when taking action a in state s)
+
+        T is the Markov Chain transition matrix, T: S x S -> [0, 1]
+        T(s'|s) = \sum_a \pi(a|s)T(s'|s,a)
+
+        States are index by r*nrows + c, with s = (r,c)
+
+        Strategy: We construct the transition matrix T, for an arbitrary
+        policy
+        """
+        nrows, ncols = self.world.shape
+        state_size = nrows*ncols
+        
+        assert np.all(pi<=1)
+        assert np.all(0<=pi)
+        assert not np.isnan(pi).any()
+        assert np.all(np.sum(pi, axis=1) <= 1.00001)
+
+        pi[:,:] += 1e-24
+        pi = pi / np.sum(pi, axis=1, keepdims=True)
+        assert np.all(pi<=1)
+        assert np.all(0<=pi)
+        assert not np.isnan(pi).any()
+        assert np.all(np.sum(pi, axis=1) <= 1.00001)
+
+        ## Initialization
+        T = np.zeros((state_size, state_size), dtype=float)
+        G = [] ## Track the goal state indices here
+        gfeature = self.get_goal_state()
+        ## Populate transition matrix, assuming deterministic environment
+        ## transitions, and probabilistic policy actions
+        for r in range(nrows):
+            for c in range(ncols):
+                for a in range(len(self.actions)):
+                    n_r, n_c = self.transition(r, c, a)
+                    i =   r * nrows +   c   ## Current state
+                    j = n_r * nrows + n_c   ## Next state
+                    T[i,j] = T[i,j] + pi[i,a]
+                if self.world[r,c] == gfeature:
+                    G.append(r*nrows+c) ## Index of goal state
+
+        ## Make sure to normalize
+        T[:,:] += 1e-24 ## Take care of any zero rows, if there are any
+        T = T / np.sum(T, axis=1, keepdims=True)
+
+        assert np.all(T<=1.0001)
+        assert np.all(0<=T)
+        assert not np.isnan(T).any()
+        assert np.all(np.sum(T, axis=1)<= 1.0001)
+
+        ## Set the goal states to be absorbing states
+        for g in G:
+            T[g, :] = 0.0
+            T[g,g] = 1
+        print(f"T: {T}")
+
+        ## Set uniform initial distribution, except in goal states:
+        num_nongoal = state_size - len(G)
+        d = np.ones(state_size, dtype=float)
+        d /= num_nongoal
+        for g in G:
+            d[g] = 0.0
+        ## Normalize
+        d = d / np.sum(d)
+        print(f"d: {d}")
+
+        ## Simulate the Markov Chain for N steps
+        for n in range(steps):
+            d = np.matmul(d, T)
+            d = d / np.sum(d)
+        print(f"dN: {d}")
+        return d, G
+
+    def compute_violation_matrix(self):
+        """
+        Computes the violations matrix. The form of the matrix is:
+        |S| x |A|. Here, the |S| dimension is indexed by r*nrows+c for
+        state s = (r,c)
+        Similarly, the indexing for |A| correspond to the default indices
+        that are used for the actions vector.
+
+        Each entry of the violation matrix will be filled with either
+        a 0 or a 1. If the entry is 1, then this means taking action a
+        while in state s counts as a violating action.
+
+        We define computing the violations as follows:
+        Let E represent the environment transition for taking action a
+        in state s, that is E: S x A -> S
+        Additionally, let S_V \subset S be the set of violating features
+        Let \phi be a function that returns the feature of a state s
+        Let V represent the violations matrix
+
+        For each s for each a:
+        Let s' = E(s,a)
+        If s' == s or \phi(s') \in S_V
+            V(s,a) = 1
+        Else:
+            V(s,a) = 0
+        """
+        vfeature = set({1,2,3})
+        nrows, ncols = self.world.shape
+        V = np.zeros((nrows*ncols, len(self.actions)), dtype=int)
+        for r in range(nrows):
+            for c in range(ncols):
+                for a in range(len(self.actions)):
+                    n_r, n_c = self.transition(r, c, a)
+                    V[r*nrows+c, a] = int(((n_r, n_c) == (r, c)) or self.world[n_r, n_c] in vfeature)
+        return V
+
+
     def get_termination_states(self):
         """
         Return the location of the termination state
@@ -546,6 +666,17 @@ class Environment:
 
     def get_start_state(self):
         return copy.copy(self.state_start)
+
+    ## Helpers for goal success
+    def transition(self, r, c, a):
+        nrows, ncols = self.world.shape
+        r_next = r + self.actions[a][0]
+        c_next = c + self.actions[a][1]
+        r_next = min(r_next, nrows-1)
+        r_next = max(r_next, 0)
+        c_next = min(c_next, ncols-1)
+        c_next = max(c_next, 0)
+        return r_next, c_next
 
     def step(self, r, c, action):
         """

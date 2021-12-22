@@ -187,6 +187,52 @@ def extract_policies(data, cg, last_only=False):
 
     return policies
 
+def stoch_goal_success(policies, cg):
+    """
+    Simulates the environment Markov Chain for N-steps, with the
+    goal states as absorbing states.
+
+    """
+    nrows, ncols = cg.env.world.shape
+    state_size = nrows*ncols
+    arr_stochastic_goal_success = np.zeros(len(policies))
+    N = state_size
+    idx = 0
+    for policy in policies:
+        distribution, goal_indices = cg.env.simulate_markov_chain(policy, N)
+        goal_success = 0.0
+        for g in goal_indices:
+            goal_success = goal_success + distribution[g]
+        arr_stochastic_goal_success[idx] = goal_success
+        print(f"Goal Success: {goal_success}")
+        idx = idx + 1
+    return arr_stochastic_goal_success
+
+
+def stoch_policy_violations(policies, cg):
+    """
+    Computes average 1-step policy violations
+
+    Each policy is [|S| x |A|]. The policies are element-wise multiplied
+    with the violations matrix
+    For each state, a violating action is considered violating if
+    
+    1) The agent takes an action take allows it to end up in a violating state
+    2) The agent takes the "stay" action
+    """
+    nrows, ncols = cg.env.world.shape
+    state_size = nrows*ncols
+    V = cg.env.get_violation_matrix()
+    arr_stochastic_violations = np.zeros(len(policies))
+    idx = 0
+    for policy in policies:
+        ## Take the element-wise product, then add up all the probability mass
+        ## and then divide by the state_size
+        exp_violations = np.sum(V*policy) / state_size
+        arr_stochastic_violations[idx] = exp_violations
+        idx = idx + 1
+    return arr_stochastic_violations
+
 def save_policy_metrics(policies, cg, which="both"):
     nrows, ncols = cg.env.world.shape
     acts = cg.env.actions
@@ -1412,10 +1458,10 @@ if __name__ == '__main__':
                 result = save_policy_metrics(policies, cg, which="dgs")
             elif args.evalmetric == "dpv":
                 result = save_policy_metrics(policies, cg, which="dpv")
-            #elif args.evalmetric == "sgs":
-
-            #elif args.evalmetric == "spv":
-
+            elif args.evalmetric == "sgs":
+                result = stoch_goal_success(policies, cg)
+            elif args.evalmetric == "spv":
+                result = stoch_policy_violations(policies, cg)
             else:
                 exit()
             result_arr[seed_idx] = result
@@ -1470,13 +1516,13 @@ if __name__ == '__main__':
             elif args.style == "quantile":
                 plt.fill_between(x, data_lower, data_upper, color=colors[dataset], alpha=0.1)
             plt.plot(x, data_avg, linestyle=styles["avg"], color=colors[dataset])
-            plt.plot(x, data_med, linestyle=styles["med"], color=colors[dataset], alpha=0.5)
+	    #plt.plot(x, data_med, linestyle=styles["med"], color=colors[dataset], alpha=0.5)
 
         if args.ylo is not None and args.yhi is not None:
             plt.ylim([args.ylo, args.yhi])
         plt.xlabel(args.xlabel)
         plt.ylabel(args.ylabel)
-        plt.title(args.plottitle)
+	#plt.title(args.plottitle)
         plt.savefig(args.saveplot, bbox_inches='tight')
         plt.close()
     else:
