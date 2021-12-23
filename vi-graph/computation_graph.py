@@ -251,16 +251,15 @@ class ComputationGraph:
         print("LEARNING!***************")
         piout, Qout, loss = None, None, None
         ## NOTE: Scalar feedback performs a SINGLE on-policy update
-        piout, Qout, _ = self.forward()
-        loss = self.scalar_loss(piout, Qout, [action], [(r,c)], scalar)
-        scale = self.scalar_scale(piout, action, r, c, scalar)
-        with torch.no_grad():
-            grads_value = self.rk.grad
-            self.rk -= (self.learning_rate * grads_value) * scale
-            self.rk.grad.zero_()
+        for k in range(self.num_updates):
+            piout, Qout, _ = self.forward()
+            loss = self.scalar_loss(piout, Qout, [action], [(r,c)], scalar)
+            scale = self.scalar_scale(piout, action, r, c, scalar)
+            with torch.no_grad():
+                grads_value = self.rk.grad
+                self.rk -= (self.learning_rate * grads_value) * scale
+                self.rk.grad.zero_()
         return piout, Qout, loss, self.rk
-
-    ## TODO: Finish findpol and plotpolicy
 
     def plotpolicy(self, pi):
         def findpol(grid,pi,r,c, iteration):
