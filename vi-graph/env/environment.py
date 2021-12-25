@@ -340,6 +340,29 @@ class Environment:
             print(f"Q: {Q[r*nrows+c]}")
             print(f"V: {V[r*nrows+c]}")
             return str(raw_advantage)
+        
+        if feedback_policy_type == "affine_policy_evaluation":
+            """
+            Same as ``policy evaluation'', except performs an affine transformation of the
+            advantage values.
+            """
+            scale = 4
+            agent_pi, agent_Q, agent_V = agent_cg.forward(as_numpy=True)
+            self.__compute_ground_truth()
+            A, Q, V = self.policy_evaluation(self.sim_cg.current_reward_estimate(), agent_pi)
+            sorted_adv = np.sort(A[r*nrows+c])
+            A_max = sorted_adv[-1]
+            A_min = sorted_adv[0]
+            A_sec = sorted_adv[-2]
+            
+            affine_A = (A[r*nrows+c] - (A_max + A_sec)*0.5)*scale/(A_max - A_min + 1e-24)
+            raw_advantage = affine_A[action]
+            print(f"Agent Policy: {agent_pi[r*nrows+c]}")
+            print(f"A: {A[r*nrows+c]}")
+            print(f"affine_A: {affine_A}")
+            print(f"Q: {Q[r*nrows+c]}")
+            print(f"V: {V[r*nrows+c]}")
+            return str(raw_advantage)
 
         if feedback_policy_type == "ranked_policy_evaluation":
             """
@@ -499,7 +522,9 @@ class Environment:
             ## default_2
             ## DEFAULT_REWARD = [ 0.6487329, -2.6717327, -1.280116, 0.519958, 2.7245345]
             ## default_3 (from supervised action-only version, probably most accurate?)
-            DEFAULT_REWARD = [ 0.5631, -0.4677, -0.4628, -0.7351,  1.1025]
+            #DEFAULT_REWARD = [ 0.5631, -0.4677, -0.4628, -0.7351,  1.1025]
+            ## default_4
+            DEFAULT_REWARD = [0, -2, -1, -1,  10]
             reward = np.array(DEFAULT_REWARD) - DEFAULT_REWARD[0] - 0.01
             reward = reward / np.linalg.norm(reward)
             self.sim_cg.set_reward_estimate(reward)
@@ -534,9 +559,9 @@ class Environment:
             yield r, c
             n = (n + 1) % total
 
-    def get_violation_matrix(self):
+    def get_violation_matrix(self, violation_set):
         if self.violation_matrix is None:
-            self.violation_matrix = self.compute_violation_matrix()
+            self.violation_matrix = self.compute_violation_matrix(violation_set)
         return self.violation_matrix
 
     def simulate_markov_chain(self, pi, steps):
@@ -615,7 +640,7 @@ class Environment:
         print(f"dN: {d}")
         return d, G
 
-    def compute_violation_matrix(self):
+    def compute_violation_matrix(self, violation_set):
         """
         Computes the violations matrix. The form of the matrix is:
         |S| x |A|. Here, the |S| dimension is indexed by r*nrows+c for
@@ -641,7 +666,8 @@ class Environment:
         Else:
             V(s,a) = 0
         """
-        vfeature = set({1,2,3})
+        vfeature = set(violation_set)
+        print(f"Violation Set: {vfeature}")
         nrows, ncols = self.world.shape
         V = np.zeros((nrows*ncols, len(self.actions)), dtype=int)
         for r in range(nrows):

@@ -161,6 +161,7 @@ def extract_policies(data, cg, last_only=False):
     """
     as_numpy = True
     policies = []
+    trial_idx = 0
     for trial in data:
         ## Full metric calculations for every single timestep in the trial
         if not last_only:
@@ -178,6 +179,15 @@ def extract_policies(data, cg, last_only=False):
                 policies.append(pi)
         ## Full metric calculation only for the last timestep in the trial
         else:
+            if trial_idx == 0:
+                r = trial.transitions[0].reward_estimate
+                print(f'Reawrd Estimate: {r}')
+                cg.env.world = trial.grid_map
+                cg.set_reward_estimate(r)
+                pi, Q, _ = cg.forward(as_numpy)
+                policies.append(pi)
+                trial_idx += 1
+    
             r = trial.transitions[-1].reward_estimate
             print(f'Reawrd Estimate: {r}')
             cg.env.world = trial.grid_map
@@ -209,7 +219,7 @@ def stoch_goal_success(policies, cg):
     return arr_stochastic_goal_success
 
 
-def stoch_policy_violations(policies, cg):
+def stoch_policy_violations(policies, cg, violation_set):
     """
     Computes average 1-step policy violations
 
@@ -222,7 +232,7 @@ def stoch_policy_violations(policies, cg):
     """
     nrows, ncols = cg.env.world.shape
     state_size = nrows*ncols
-    V = cg.env.get_violation_matrix()
+    V = cg.env.get_violation_matrix(violation_set)
     arr_stochastic_violations = np.zeros(len(policies))
     idx = 0
     for policy in policies:
@@ -1283,6 +1293,7 @@ def parse_args():
     parser.add_argument('--group_gammas', nargs='+', help='For hyperparameter sweeps', default=None)
     parser.add_argument('--mixed_strat', nargs='+', help='Pair of strategies to consider', default=["action_path_cost", "r1_evaluative"])
     parser.add_argument('--mixed_percent', type=float, help='Probability of following first strat in mixed strat on each timestep', default=0.5)
+    parser.add_argument('--violation_set', nargs='+', help='List the violating states', default=[1,2,3], choices=range(5), type=int)
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -1461,7 +1472,7 @@ if __name__ == '__main__':
             elif args.evalmetric == "sgs":
                 result = stoch_goal_success(policies, cg)
             elif args.evalmetric == "spv":
-                result = stoch_policy_violations(policies, cg)
+                result = stoch_policy_violations(policies, cg, args.violation_set)
             else:
                 exit()
             result_arr[seed_idx] = result
@@ -1516,13 +1527,11 @@ if __name__ == '__main__':
             elif args.style == "quantile":
                 plt.fill_between(x, data_lower, data_upper, color=colors[dataset], alpha=0.1)
             plt.plot(x, data_avg, linestyle=styles["avg"], color=colors[dataset])
-	    #plt.plot(x, data_med, linestyle=styles["med"], color=colors[dataset], alpha=0.5)
 
         if args.ylo is not None and args.yhi is not None:
             plt.ylim([args.ylo, args.yhi])
         plt.xlabel(args.xlabel)
         plt.ylabel(args.ylabel)
-	#plt.title(args.plottitle)
         plt.savefig(args.saveplot, bbox_inches='tight')
         plt.close()
     else:

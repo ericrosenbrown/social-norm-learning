@@ -69,6 +69,14 @@ class ComputationGraph:
         self.recorded_losses = ComputationGraph.lossdict()
         self.recorded_losses.set_decode({0: 'U', 1: 'R', 2: 'D', 3: 'L', 4: 'S'})
 
+        self.fmax_Q = self.__softmax_Q
+        self.fmax_options = {
+            "softmax": self.__softmax_Q,
+            "max": self.__max_Q,
+            "min": self.__min_Q,
+            "mean": self.__mean_Q
+        }
+
     def dump_hyperparameters(self):
         return {
             'alpha': self.learning_rate,
@@ -76,6 +84,30 @@ class ComputationGraph:
             'beta':  self.beta,
             'horizon': self.horizon,
             'num_updates': self.num_updates}
+
+
+    def __softmax_Q(self, inQ):
+        pi = self.softmax(self.beta * inQ)
+        next_Q = (inQ * pi).sum(dim=1)
+        return next_Q
+        
+    def __max_Q(self, inQ):
+        next_Q, _ = torch.max(inQ, dim=1)
+        return next_Q
+
+    def __min_Q(self, inQ):
+        next_Q, _ = torch.min(inQ, dim=1)
+        return next_Q
+    
+    def __mean_Q(self, inQ):
+        next_Q = torch.mean(inQ, dim=1)
+        return next_Q
+
+    def set_fmax(self, o):
+        if o not in self.fmax_options:
+            raise ValueError(f"{o} not in {self.fmax_options}")
+        else:
+            self.fmax_Q = self.fmax_options[o]
 
     def set_hyperparameters(self, d):
         hypers = {'alpha': self.set_alpha,
@@ -137,9 +169,10 @@ class ComputationGraph:
             ## Compute Q values
             ## This forces Q to be (nrows*ncols x nacts)
             Q = torch.mul(self.mattrans, v).sum(dim=-1).T
-            pi = self.softmax(self.beta * Q)
-            next_Q = (Q * pi).sum(dim=1)
+            next_Q = self.fmax_Q(Q)
             v = rffk + self.gamma * next_Q ## This back to 1D view again
+
+        pi = self.softmax(self.beta * Q)
         if not as_numpy:
             return pi, Q, v
         else:

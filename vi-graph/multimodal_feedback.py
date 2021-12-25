@@ -1042,7 +1042,7 @@ def parse_args():
     parser.add_argument('--feedback_policy',
         default="human", choices=["human","action", "evaluative", "mixed",
             "r1_evaluative", "ranked_evaluative", "raw_evaluative", "policy_evaluation", "ranked_policy_evaluation",
-            "action_path_cost"],
+            "action_path_cost", "affine_policy_evaluation"],
         help='specify the feedback policy to use')
     parser.add_argument('--hide', help='hide plots, used for autosaving plots',
         dest='hide', action='store_true')
@@ -1062,6 +1062,7 @@ def parse_args():
     parser.add_argument('--group_alphas', nargs='+', help='For hyperparameter sweeps', default=None)
     parser.add_argument('--group_gammas', nargs='+', help='For hyperparameter sweeps', default=None)
     parser.add_argument('--mixed_strat', nargs='+', help='Pair of strategies to consider', default=["action_path_cost", "r1_evaluative"])
+    parser.add_argument('--bellman_update', choices=["softmax", "max", "min", "mean"], default="softmax")
     
     world_choices =[x for x in range(Worlds.max_idx+1)]
     parser.add_argument('--mixed_percent', type=float, help='Probability of following first strat in mixed strat on each timestep', default=0.5)
@@ -1115,6 +1116,7 @@ if __name__ == '__main__':
     cg = ComputationGraph(env)
     cg.set_gamma(gamma)
     cg.set_alpha(alpha)
+    cg.set_fmax(args.bellman_update)
     prepop_trial_data = None
     show_plots = True
     force_feedback = True

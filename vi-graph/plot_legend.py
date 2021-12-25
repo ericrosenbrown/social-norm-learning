@@ -21,12 +21,17 @@ def export_legend(labels, exps, savepath):
     fig.savefig(savepath, dpi="figure", bbox_inches=bbox)
 
 if __name__ == "__main__":
-    labels = {'action': ('F.A. Action Only', 'blue'),
-              'scalar': ('F.A. Scalar Only', 'red'),
-              'human_choice': ('F.A. Human Choice', 'green'),
-              'full': ('F.R./All Human Choice', 'magenta'),
-              'traj': ('F.R./Cur Human Choice', 'gold'),
-              'baseline': ('Baseline', 'cyan')}
-    exps = ["action", "scalar", "human_choice", "full", "traj", "baseline"]
+    #labels = {'action': ('F.A. Action Only', 'blue'),
+    #          'scalar': ('F.A. Scalar Only', 'red'),
+    #          'human_choice': ('F.A. Human Choice', 'green'),
+    #          'full': ('F.R./All Human Choice', 'magenta'),
+    #          'traj': ('F.R./Cur Human Choice', 'gold'),
+    #          'baseline': ('Baseline', 'cyan')}
+    #exps = ["action", "scalar", "human_choice", "full", "traj", "baseline"]
+    labels = {'raw': ('Raw Policy Advantage', 'C0'),
+              'affine': ('Affine Policy Advantage', 'C1'),
+              'multi_raw': ('Multi-Update Raw Policy Advantage', 'C2'),
+              'multi_affine': ('Multi-Update Affine Policy Advantage', 'C3')}
+    exps = ["raw","affine","multi_raw","multi_affine"]
 
     export_legend(labels, exps, "legend.pdf")
