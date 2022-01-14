@@ -36,6 +36,10 @@ class Environment:
         self.transition_matrix = None
         self.matrix_map = None
         self.rng = np.random.default_rng()
+        self._costs = None
+        self._paths = None
+        self._problem = None
+        self.idx2act = ["w","d","s","a","stay"]
 
         self.violation_matrix = None
 
@@ -87,7 +91,13 @@ class Environment:
         """
         pass
 
-    def acquire_feedback(self, action_idx, r, c, source_is_human=True, feedback_policy_type="action", agent_cg=None, mixed_strat=None, mixed_percent=0.50):
+    def acquire_feedback(self, action_idx, r, c,
+            source_is_human=True,
+            feedback_policy_type="action",
+            agent_cg=None,
+            mixed_strat=None,
+            mixed_percent=0.50,
+            violation_set={1,2,3}):
         """
         Acquires feedback from a source
 
@@ -124,7 +134,7 @@ class Environment:
                 print("Feedback Options: Scalar Options:  -2,  -1,  0,  1,  2")
                 feedback_str = input("Human Feedback: ")
             else:
-                feedback_str = self.feedback_source(action_idx, r, c, feedback_policy_type, agent_cg, mixed_strat, mixed_percent)
+                feedback_str = self.feedback_source(action_idx, r, c, feedback_policy_type, agent_cg, mixed_strat, mixed_percent, violation_set)
             valid = False
         return feedback_str
 
@@ -155,7 +165,7 @@ class Environment:
         """
         return [self.action_feedback_map[feedback]], [(r,c)]
 
-    def feedback_source(self, action, r, c, feedback_policy_type, agent_cg, mixed_strat, mixed_percent):
+    def feedback_source(self, action, r, c, feedback_policy_type, agent_cg, mixed_strat, mixed_percent, violation_set):
         """
         A simulator for providing feedback.
         This function is called from acquire_feedback()
@@ -187,13 +197,104 @@ class Environment:
             )
             return feedback_map[r][c]
 
+        if feedback_policy_type == "heuristic_action_eval":
+            """
+            Attempts to model probability of giving action instruction
+            according to Chi and Malle 2022, Figure 3,
+            where ``appropriateness'' is a function of goal success
+            and violations.
+
+            General comments:
+            (1) we'll first start out with some simple heuristics and
+                then see if using these improves performance over random
+                mixtures.
+            (2) eventually the heuristics need to be informed from real
+                human experiments data
+
+            Parameters: Stochastic Goal Success, Stochastic Violations
+
+            Heuristic 1: Based only on a goal success
+                (a) threshold
+                (b) linear
+                (c) function
+            Heuristic 2: Based only on violations (likely to fail)?
+            Hueristic 3: Based on both
+
+            Boundary Conditions:
+                (1) 100% Goal Success, 0% violations = 0% action
+                (2) 0% Goal Success, 100% violations = 100% action?
+                (3) 100% goal success, >0% violations = >0% action?
+                (4) 0% Goal Success, 0% Violations = 100% action
+            """
+            def heuristic_1(goal_success, violations):
+                """
+                 (V) ^
+                    1|    1
+                     |
+                     |____>(G)
+                    1     0
+
+                Need a nonlinear surface fitting to
+                (0,0,1), (0,1,1), (1,0,0), (1,1,1)
+                Can be plane with points (0,0,1), (1,0,0), (1,1,1), with z-clipped
+                between 0 and 1
+                Ax + By + Cz = D
+                C = D = k (0,0,1)
+                A = D = C = k(1,0,0)
+                A + B + C = D
+                k + B + k = k, then B = -k
+                Let k  = 1
+                x - y + z = 1
+                0 - 0 + 1 = 1
+                1 - 0 + 0 = 1
+                1 - 1 + 1 = 1
+                goal_success - violations + prob_of_action_feedback = 1
+                prob of action feedback = clip(1 - goal_sucess + violations)
+                """
+                return np.clip(1.0 - goal_success + violations, 0, 1)
+            def heuristic_2(goal_success, violations):
+                """
+                 (V) ^
+                    1| 1  0
+                    1| 0  0
+                    0|____>(G)
+                          0
+                Use (0, 0.25, 1), (0.25, 1, 1), (0.25,0.25, 0)
+                Ax+By+Cz=1
+                0.25B + C = 1
+                0.25A + B + C = 1 =>  0.25A + 0.75B = 0 => A + 3B = 0 => A = -3B
+                0.25A + 0.25B = 1 => A + B = 4 => -2B = 4, B = -2, A = 6, C = 1.5
+
+                6x - 2y + 1.5z = 1
+                """
+                return np.clip(1.0 - 6*goal_success + 2*violations, 0, 1)
+
+            def heuristic(goal_success, violations):
+                #return heuristic_1(goal_success, violations)
+                return heuristic_2(goal_success, violations)
+
+
+            ## 1. Evaluate Goal Success and Violations Using stochastic metrics
+            agent_policy, _, _ = agent_cg.forward(as_numpy=True)
+            gs = self.stochastic_goal_success(agent_policy)
+            pv = self.stochastic_policy_violations(agent_policy, violation_set)
+            print(f"Eval Stoch. Goal Success: {gs}")
+            print(f"Eval Stoch. Violations:   {pv}")
+            ## 2. Compute probability from heuristic
+            p = heuristic(gs, pv)
+            print(f"Heur. 1 (Prob of A FB):   {p}")
+            return self.feedback_source(action, r, c,
+                    "mixed", agent_cg,
+                    ["action_path_cost", "affine_policy_evaluation"],
+                    p, violation_set)
+
         if feedback_policy_type == "action_path_cost":
             """
             Computes optimal action using the strategy in r1_evaluative
             """
-            if self.need_simulated_evaluative_feedback:
+            if self.need_simulated_evaluative_feedback or self._problem is None:
                 goal_state = tuple(np.argwhere(self.world == 4)[0])
-                prob = GridWorldProblem(self, goal_state, goal_state)
+                prob = GridWorldProblem(self, goal_state, goal_state, violation_set)
                 search_problem = GridWorldSearch(prob)
                 costs, paths = search_problem.cost_to_goal()
                 self.need_simulated_evaluative_feedback = False
@@ -212,6 +313,7 @@ class Environment:
                 prob.set_forward(forward=True)
                 self._problem = prob
                 self.idx2act = ["w","d","s","a","stay"]
+                print(f"Entered simulation")
 
             decision_costs = np.zeros(len(self.actions))
             for idx in range(len(self.actions)):
@@ -237,9 +339,9 @@ class Environment:
             ## Whenever a violation is made, the feedback must be negative. Feedback is a scalar that is ranked
             ## and given such that the action brings the agent closer to the goal (i.e. along a shortest path)
             ## is considered the best.
-            if self.need_simulated_evaluative_feedback:
+            if self.need_simulated_evaluative_feedback or self._problem is None:
                 goal_state = tuple(np.argwhere(self.world == 4)[0])
-                prob = GridWorldProblem(self, goal_state, goal_state)
+                prob = GridWorldProblem(self, goal_state, goal_state, violation_set)
                 search_problem = GridWorldSearch(prob)
                 costs, paths = search_problem.cost_to_goal()
                 self.need_simulated_evaluative_feedback = False
@@ -351,11 +453,24 @@ class Environment:
             self.__compute_ground_truth()
             A, Q, V = self.policy_evaluation(self.sim_cg.current_reward_estimate(), agent_pi)
             sorted_adv = np.sort(A[r*nrows+c])
+
+            ## If multiple values are the same as the max, then find the first one that is
+            ## outside the tolerance range.
             A_max = sorted_adv[-1]
             A_min = sorted_adv[0]
-            A_sec = sorted_adv[-2]
+
+            ## If the min and the max are the same, then everything has the same advantage.
+            affine_A = A[r*nrows+c] ## Don't perform any transformation
+            if A_max - A_min >= 1e-12:
+                start_idx = -2
+                end_idx = -5
+                idx = start_idx
+                A_sec = sorted_adv[idx]
+                while A_max - A_sec < 1e-12 and idx > end_idx:
+                    idx = idx - 1
+                    A_sec = sorted_adv[idx]
+                affine_A = (A[r*nrows+c] - (A_max + A_sec)*0.5)*scale/(A_max - A_min + 1e-24)
             
-            affine_A = (A[r*nrows+c] - (A_max + A_sec)*0.5)*scale/(A_max - A_min + 1e-24)
             raw_advantage = affine_A[action]
             print(f"Agent Policy: {agent_pi[r*nrows+c]}")
             print(f"A: {A[r*nrows+c]}")
@@ -419,9 +534,9 @@ class Environment:
             ### Create a dynamic mixture of action and evaluative feedback (distribution changes over time)
             ### Create a mixture dependent on the history of the state, action, feedback encountered
             if self.rng.uniform() < mixed_percent:
-                return self.feedback_source(action, r, c, mixed_strat[0], agent_cg, mixed_strat, mixed_percent)
+                return self.feedback_source(action, r, c, mixed_strat[0], agent_cg, mixed_strat, mixed_percent, violation_set)
             else:
-                return self.feedback_source(action, r, c, mixed_strat[1], agent_cg, mixed_strat, mixed_percent)
+                return self.feedback_source(action, r, c, mixed_strat[1], agent_cg, mixed_strat, mixed_percent, violation_set)
 
     def policy_evaluation(self, reward_func, policy):
         """
@@ -524,7 +639,7 @@ class Environment:
             ## default_3 (from supervised action-only version, probably most accurate?)
             #DEFAULT_REWARD = [ 0.5631, -0.4677, -0.4628, -0.7351,  1.1025]
             ## default_4
-            DEFAULT_REWARD = [0, -2, -1, -1,  10]
+            DEFAULT_REWARD = [0, -1, -1, -10,  100]
             reward = np.array(DEFAULT_REWARD) - DEFAULT_REWARD[0] - 0.01
             reward = reward / np.linalg.norm(reward)
             self.sim_cg.set_reward_estimate(reward)
@@ -564,7 +679,7 @@ class Environment:
             self.violation_matrix = self.compute_violation_matrix(violation_set)
         return self.violation_matrix
 
-    def simulate_markov_chain(self, pi, steps):
+    def simulate_markov_chain(self, pi, steps, verbose=True):
         """
         G: S x A -> S is the environment transition function (it returns
         the state you will be in when taking action a in state s)
@@ -621,7 +736,8 @@ class Environment:
         for g in G:
             T[g, :] = 0.0
             T[g,g] = 1
-        print(f"T: {T}")
+        if verbose:
+            print(f"T: {T}")
 
         ## Set uniform initial distribution, except in goal states:
         num_nongoal = state_size - len(G)
@@ -631,14 +747,43 @@ class Environment:
             d[g] = 0.0
         ## Normalize
         d = d / np.sum(d)
-        print(f"d: {d}")
+        if verbose:
+            print(f"d: {d}")
 
         ## Simulate the Markov Chain for N steps
         for n in range(steps):
             d = np.matmul(d, T)
             d = d / np.sum(d)
-        print(f"dN: {d}")
+        if verbose:
+            print(f"dN: {d}")
         return d, G
+
+    def stochastic_policy_violations(self, policy, violation_set):
+        """
+        Computes policy violations
+        """
+        nrows, ncols = self.world.shape
+        state_size = nrows*ncols
+        V = self.get_violation_matrix(violation_set)
+        ## Take the element-wise product, then add up all the probability mass
+        ## and then divide by the state_size
+        exp_violations = np.sum(V*policy) / state_size
+        return exp_violations
+
+    def stochastic_goal_success(self, policy):
+        """
+        Computes goal success
+
+        N is the total state size (as an integer)
+        policy is a np.array representing the policy
+        """
+        nrows, ncols = self.world.shape
+        N = nrows*ncols
+        distribution, goal_indices = self.simulate_markov_chain(policy, N, False)
+        goal_success = 0.0
+        for g in goal_indices:
+            goal_success = goal_success + distribution[g]
+        return goal_success
 
     def compute_violation_matrix(self, violation_set):
         """

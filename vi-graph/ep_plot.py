@@ -154,6 +154,36 @@ def compute_effort(data, cg):
 
     return effort, dist
 
+def extract_rewards(data, cg, last_only=False):
+    """
+    Computes and saves the rewards from each episode
+    """
+    as_numpy = True
+    rewards = []
+    trial_idx = 0
+    for trial in data:
+        ## Full metric calculations for every single timestep in the trial
+        if not last_only:
+            r = trial.reward_estimate
+            print(f'Reawrd Estimate: {r}')
+            rewards.append(r)
+            for transition in trial.transitions:
+                r = transition.reward_estimate
+                print(f'Reawrd Estimate: {r}')
+                rewards.append(r)
+        ## Full metric calculation only for the last timestep in the trial
+        else:
+            if trial_idx == 0:
+                r = trial.transitions[0].reward_estimate
+                print(f'Reawrd Estimate: {r}')
+                rewards.append(r)
+                trial_idx += 1
+    
+            r = trial.transitions[-1].reward_estimate
+            print(f'Reawrd Estimate: {r}')
+            rewards.append(r)
+
+    return rewards
 
 def extract_policies(data, cg, last_only=False):
     """
@@ -1255,9 +1285,10 @@ def plot_losses(demonstration_losses, save_prefix, show=True):
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--mode', help='"train", "test", or "plot" mode', required=True, type=str,
-        choices=["train","test","plot","extract_policies", "single_group_metric"])
-    parser.add_argument('--evalmetric', help='"dgs", "dpv", "sgs", "spv"', type=str,
-        choices=["dgs","dpv","sgs","spv"], default=None)
+        choices=["train","test","plot","extract_policies", "extract_reward", "single_group_metric",
+                "plot_reward"])
+    parser.add_argument('--evalmetric', help='"dgs", "dpv", "sgs", "spv", "rew"', type=str,
+        choices=["dgs","dpv","sgs","spv", "rew"], default=None)
     parser.add_argument('--saveplot', type=str)
     parser.add_argument('--plottitle', type=str)
     parser.add_argument('--xlabel', type=str)
@@ -1293,7 +1324,13 @@ def parse_args():
     parser.add_argument('--group_gammas', nargs='+', help='For hyperparameter sweeps', default=None)
     parser.add_argument('--mixed_strat', nargs='+', help='Pair of strategies to consider', default=["action_path_cost", "r1_evaluative"])
     parser.add_argument('--mixed_percent', type=float, help='Probability of following first strat in mixed strat on each timestep', default=0.5)
-    parser.add_argument('--violation_set', nargs='+', help='List the violating states', default=[1,2,3], choices=range(5), type=int)
+    parser.add_argument('--violation_set', nargs='+', help='List the violating states', default=[1,2,3], choices=range(9), type=int)
+    world_choices =[x for x in range(Worlds.max_idx+1)]
+    parser.add_argument('--world', type=int,
+        help='Integer index of the world to train in', default=None,
+        choices=world_choices)
+    parser.add_argument('--categories', type=int,
+        help="Integer number of categories in the world", default=None)
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -1335,13 +1372,19 @@ if __name__ == '__main__':
         (2) Single group metric computations
         (3) Plotting, which plots the specified metrics together
     """
-
     args = parse_args()
     all_training_data = None
     demonstration_losses = None
     ## Select a world
-    idx = 0
+    if args.world is None:
+        print(f"Need to specify a world!")
+        exit()
+    if args.categories is None:
+        print(f"Need to number of categories in the world!")
+        exit()
+    idx = args.world
     grid_maps, state_starts, viz_starts = Worlds.define_worlds()
+    Worlds.categories = [i for i in range(args.categories)]
     env = Environment(grid_maps[idx], state_starts[idx], viz_starts[idx], Worlds.categories)
     gamma = args.gamma
     alpha = args.alpha
@@ -1365,7 +1408,7 @@ if __name__ == '__main__':
             print(f"Mixed strategy components must be specified if a mixed strategy is used")
             exit()
         ## Need to put a check here to confirm that strategy types present here are valid
-    elif args.mode == "extract_policies":
+    elif "extract_" in args.mode:
         ## Policy extract is the only portion of plotting that requires hyperparameters to be set
         plt.rcParams.update({'font.size': 20})
         if args.inputs is None or len(args.inputs) == 0:
@@ -1412,9 +1455,16 @@ if __name__ == '__main__':
                     cg.set_hyperparameters(d_hypers[grp])
 
             ## Policy extract is the only portion of plotting that requires hyperparameters to be set
-            policies = extract_policies(all_training_data, cg, last_only=args.lastonly)
-            with open(f"{dataset}.policy","wb") as f:
-                pickle.dump(policies, f)
+            if args.mode == "extract_policies":
+                policies = extract_policies(all_training_data, cg, last_only=args.lastonly)
+                with open(f"{dataset}.policy","wb") as f:
+                    pickle.dump(policies, f)
+            elif args.mode == "extract_reward":
+                rewards = extract_rewards(all_training_data, cg, last_only=args.lastonly)
+                with open(f"{dataset}.rewards","wb") as f:
+                    pickle.dump(rewards, f)
+            else:
+                raise ValueError("Extraction must be of either rewards or policies")
         exit()
     elif args.mode == "single_group_metric":
         """
@@ -1439,6 +1489,7 @@ if __name__ == '__main__':
             print("  dpv = deterministic policy violations")
             print("  sgs = stochastic goal success")
             print("  spv = stochastic policy violations")
+            print("  rew = rewards")
             exit()
         plt.rcParams.update({'font.size': 20})
         if args.inputs is None or len(args.inputs) == 0:
@@ -1450,6 +1501,10 @@ if __name__ == '__main__':
 
         result_arr = None
         seed_idx = 0
+
+        ## Support step-based plotting in addition to episode-based
+        ## plotting.
+        max_length = 0
         for dataset in args.inputs:
             if not os.path.isfile(dataset):
                 print(f"Dataset path is not a file.")
@@ -1457,12 +1512,30 @@ if __name__ == '__main__':
             with open(dataset, 'rb') as f:
                 print(f"Loading... {dataset}")
                 policies = pickle.load(f)
+            if len(policies) > max_length:
+                max_length = len(policies)
 
-            if result_arr is None:
-                seeds = len(args.inputs)
-                episodes = len(policies)
-                result_arr = np.zeros((seeds, episodes))
+        ## For step-based each seed might be a different length
+        ## If the length is smaller than the max_length, then we
+        ## backfill with the value of the last element
+        if result_arr is None:
+            seeds = len(args.inputs)
+            episodes = len(policies)
+            if args.evalmetric == "rew":
+                reward_dim = len(policies[0])
+                result_arr = np.zeros((seeds, max_length, reward_dim))
+            else:
+                result_arr = np.zeros((seeds, max_length))
 
+        for dataset in args.inputs:
+            if not os.path.isfile(dataset):
+                print(f"Dataset path is not a file.")
+                exit()
+            with open(dataset, 'rb') as f:
+                print(f"Loading... {dataset}")
+                policies = pickle.load(f)
+            
+            episodes = len(policies)
             result = None
 
             if   args.evalmetric == "dgs":
@@ -1473,13 +1546,83 @@ if __name__ == '__main__':
                 result = stoch_goal_success(policies, cg)
             elif args.evalmetric == "spv":
                 result = stoch_policy_violations(policies, cg, args.violation_set)
+            elif args.evalmetric == "rew":
+                result = np.array(policies)
             else:
                 exit()
-            result_arr[seed_idx] = result
+            if episodes == max_length:
+                result_arr[seed_idx] = result
+            else:
+                result_arr[seed_idx, 0:episodes] = result
+                result_arr[seed_idx, episodes:] = result[-1]
+                
             seed_idx += 1
 
         with open(f"{args.dataset}.{args.evalmetric}","wb") as f:
             pickle.dump(result_arr, f)
+    elif args.mode == "plot_reward":
+        """
+        Special plotting for reward
+        """
+        plt.rcParams.update({'font.size': 20})
+        if args.inputs is None or len(args.inputs) == 0:
+            print(f'input "single_group_metric"s must be specified')
+            exit()
+        ## Set plotting styles
+        styles = {
+            'avg': '-',
+            'med': '-.'
+        }
+        #color_list = ['blue','green', 'red', 'cyan', 'magenta', 'yellow', 'black']
+        #color_list = ['magenta','gold', 'green', 'blue', 'red', 'cyan', 'black']
+        #default order: c0=blue, c1=orange, c2=green, c3=red, c4=violet, c5=brown, c6=pink
+        #perceptual: green blue violet pink orange red brown
+        color_list = ['#6bd0f3', '#077ccc', '#075791', '#AA0000', 'black', 'C3', 'C5', 'C7', 'C8', 'C9', 'black']
+        colors = {k:v for k,v in zip(args.inputs, color_list)}
+
+        for dataset in args.inputs:
+            if not os.path.isfile(dataset):
+                print(f"Dataset path is not a file.")
+                exit()
+            with open(dataset, 'rb') as f:
+                print(f"Loading... {dataset}")
+                data = pickle.load(f)
+
+            ## Compute all the statistics of this dataaset
+            data_avg = np.mean(data,axis=0)
+            data_std = np.std(data, axis=0)
+            data_min = np.min(data, axis=0)
+            data_max = np.max(data, axis=0)
+            data_med = np.median(data, axis=0)
+            data_upper = np.quantile(data, axis=0, q=0.84, interpolation='linear')
+            data_lower = np.quantile(data, axis=0, q=0.16, interpolation='linear')
+            x = [n+1 for n in range(len(data_avg))]
+
+            for i in range(len(data[0,0])):
+                if args.style == "std":
+                    plt.fill_between(x,
+                        data_avg.T[i] - data_std.T[i]*args.scale,
+                        data_avg.T[i] + data_std.T[i]*args.scale,
+                        color=color_list[i],
+                        alpha=0.1)
+                elif args.style == "quantile":
+                    plt.fill_between(x,
+                        data_lower.T[i],
+                        data_upper.T[i],
+                        color=color_list[i],
+                        alpha=0.1)
+                plt.plot(x,
+                    data_avg.T[i],
+                    linestyle=styles["avg"],
+                    color=color_list[i],
+                    label=f"{i}")
+
+        if args.ylo is not None and args.yhi is not None:
+            plt.ylim([args.ylo, args.yhi])
+        plt.xlabel(args.xlabel)
+        plt.ylabel(args.ylabel)
+        plt.savefig(args.saveplot, bbox_inches='tight')
+        plt.close()
     elif args.mode == "plot":
         """
         Plot takes in a set of "single_group_metrics" and plots them
@@ -1492,7 +1635,6 @@ if __name__ == '__main__':
         if args.inputs is None or len(args.inputs) == 0:
             print(f'input "single_group_metric"s must be specified')
             exit()
-
         ## Set plotting styles
         styles = {
             'avg': '-',
@@ -1500,7 +1642,9 @@ if __name__ == '__main__':
         }
         #color_list = ['blue','green', 'red', 'cyan', 'magenta', 'yellow', 'black']
         #color_list = ['magenta','gold', 'green', 'blue', 'red', 'cyan', 'black']
-        color_list = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'black']
+        #default order: c0=blue, c1=orange, c2=green, c3=red, c4=violet, c5=brown, c6=pink
+        #perceptual: green blue violet pink orange red brown
+        color_list = ['C2', 'C0', 'C4', 'C6', 'C1', 'C3', 'C5', 'C7', 'C8', 'C9', 'black']
         colors = {k:v for k,v in zip(args.inputs, color_list)}
 
         for dataset in args.inputs:

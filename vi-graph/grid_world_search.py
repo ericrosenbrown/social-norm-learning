@@ -5,11 +5,12 @@ class GridWorldProblem:
     """
     states are represented as (r,c) tuples
     """
-    def __init__(self, env, initial_state, goal_state):
+    def __init__(self, env, initial_state, goal_state, violating_set):
         self.env = env
         self.init_state = initial_state
         self.goal_state = goal_state
         self.forward = True
+        self.violating_set = violating_set
 
     def set_forward(self, forward=True):
         """
@@ -120,7 +121,7 @@ class GridWorldProblem:
         feature = self.env.world[r,c]
         ## If the action takes the agent to a violating state, assume very high cost
         ## otherwise, if action takes the agent to a non-violating state, cost is just 1
-        if feature not in [0, 4]:
+        if feature in self.violating_set:
             multiplier = 100.0
         return multiplier*base_cost_per_action
     
@@ -134,7 +135,7 @@ class GridWorldProblem:
         feature = self.env.world[r,c]
         ## If the action takes the agent to a violating state, assume very high cost
         ## otherwise, if action takes the agent to a non-violating state, cost is just 1
-        if feature not in [0, 4]:
+        if feature in self.violating_set:
             multiplier = 100.0
         return multiplier*base_cost_per_action
 

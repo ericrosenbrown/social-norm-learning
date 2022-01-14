@@ -284,7 +284,7 @@ class ComputationGraph:
         print("LEARNING!***************")
         piout, Qout, loss = None, None, None
         ## NOTE: Scalar feedback performs a SINGLE on-policy update
-        for k in range(self.num_updates):
+        for k in range(1):
             piout, Qout, _ = self.forward()
             loss = self.scalar_loss(piout, Qout, [action], [(r,c)], scalar)
             scale = self.scalar_scale(piout, action, r, c, scalar)
@@ -326,7 +326,7 @@ class ComputationGraph:
         for r in range(nrows):
             line = ""
             for c in range(ncols):
-                line += '^>v<x?01234'[grid[r][c]]
+                line += '^>v<x?012345678'[grid[r][c]]
             print(line)
 
     def chooseAction(self, r, c):

@@ -19,7 +19,12 @@ from reward_model import GridWorldRewardModel
 from feedback_buffer import Transition, TrialBuffer, Trial
 
 
-def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_human=True, feedback_policy_type="human", mixed_strat=None, mixed_percent=0.5):
+def train(episodes, cg, prepop_trial_data=None, force_feedback=True,
+    source_is_human=True, 
+    feedback_policy_type="human", 
+    mixed_strat=None, 
+    mixed_percent=0.5,
+    violation_set={1,2,3}):
     """
     Train the agent's estimate of the reward function
     """
@@ -58,7 +63,13 @@ def train(episodes, cg, prepop_trial_data=None, force_feedback=True, source_is_h
 
                 ## Get feedback for the planned action before actually taking it.
                 ##feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=True, feedback_policy_type="human")
-                feedback_str = cg.env.acquire_feedback(action, r, c, source_is_human=source_is_human, feedback_policy_type=feedback_policy_type, agent_cg=cg, mixed_strat=mixed_strat, mixed_percent=mixed_percent)
+                feedback_str = cg.env.acquire_feedback(action, r, c,
+                    source_is_human=source_is_human,
+                    feedback_policy_type=feedback_policy_type,
+                    agent_cg=cg,
+                    mixed_strat=mixed_strat,
+                    mixed_percent=mixed_percent,
+                    violation_set=violation_set)
                 feedback = None
                 ## Classify the feedback
                 feedback_type = cg.env.classify_feedback(feedback_str)
@@ -1042,7 +1053,7 @@ def parse_args():
     parser.add_argument('--feedback_policy',
         default="human", choices=["human","action", "evaluative", "mixed",
             "r1_evaluative", "ranked_evaluative", "raw_evaluative", "policy_evaluation", "ranked_policy_evaluation",
-            "action_path_cost", "affine_policy_evaluation"],
+            "action_path_cost", "affine_policy_evaluation", "heuristic_action_eval"],
         help='specify the feedback policy to use')
     parser.add_argument('--hide', help='hide plots, used for autosaving plots',
         dest='hide', action='store_true')
@@ -1050,7 +1061,8 @@ def parse_args():
         dest='noforce', action='store_true')
     parser.add_argument('--inputs', help='paths to dataset files used for plotting', nargs='+')
     parser.add_argument('--groupings', help='keyword groupings', nargs='+')
-    parser.add_argument('--lastonly', help='plot flag stating to compute metric only for the last timestep of each episode', dest='lastonly', action='store_true')
+    parser.add_argument('--lastonly', help='plot flag stating to compute metric only for the last timestep of each episode',
+        dest='lastonly', action='store_true')
     parser.add_argument('--seed', help='specifies a random seed', type=int,
         default=np.random.default_rng().integers(1000000))
     parser.add_argument('--episodes', type=int,
@@ -1069,6 +1081,9 @@ def parse_args():
     parser.add_argument('--world', type=int,
         help='Integer index of the world to train in', default=0,
         choices=world_choices)
+    parser.add_argument('--categories', type=int,
+        help="Integer number of categories in the world", default=None)
+    parser.add_argument('--violation_set', nargs='+', help='List the violating states', default=None, choices=range(9), type=int)
     return parser.parse_args()
 
 def prepopulate(cg):
@@ -1108,8 +1123,18 @@ if __name__ == '__main__':
     all_training_data = None
     demonstration_losses = None
     ## Select a world
+    if args.world is None:
+        print(f"Need to specify a world!")
+        exit()
+    if args.categories is None:
+        print(f"Need to number of categories in the world!")
+        exit()
+    if args.violation_set is None:
+        print(f"Need to specify violating states!")
+        exit()
     idx = args.world
     grid_maps, state_starts, viz_starts = Worlds.define_worlds()
+    Worlds.categories = [i for i in range(args.categories)]
     env = Environment(grid_maps[idx], state_starts[idx], viz_starts[idx], Worlds.categories)
     gamma = args.gamma
     alpha = args.alpha
@@ -1141,7 +1166,10 @@ if __name__ == '__main__':
             prepop_trial_data = prepopulate(cg)
         source_is_human = (args.feedback_policy == "human")
         episodes = args.episodes
-        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data, force_feedback, source_is_human, args.feedback_policy, args.mixed_strat, args.mixed_percent)
+        all_training_data, demonstration_losses = train(episodes, cg, prepop_trial_data,
+            force_feedback, source_is_human,
+            args.feedback_policy, args.mixed_strat,
+            args.mixed_percent, args.violation_set)
     elif args.mode == "test":
         if args.dataset is None:
             print(f"Dataset path must be specified.")

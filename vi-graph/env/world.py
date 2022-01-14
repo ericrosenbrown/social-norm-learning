@@ -1,14 +1,14 @@
 import numpy as np
 
 class Worlds:
-    categories = [i for i in range(5)]
+    categories = [i for i in range(9)]
     colors = ["white", "blue", "orange", "yellow", "green"]
     #  0      1     2     3     4
     # up, right, down, left, stay
     act_map = [[-1,0],[0,1],[1,0],[0,-1],[0,0]]
     act_name = ["UP","RIGHT","DOWN","LEFT","STAY"]
    
-    max_idx = 3
+    max_idx = 6
 
     @staticmethod
     def define_worlds():
@@ -54,6 +54,32 @@ class Worlds:
         state_starts.append([1,0])
         viz_starts.append([1,0])
 
+        ## Idx 4
+        grid_maps.append(np.array([
+            [1,2,4],
+            [2,3,1],
+            [0,1,3]]))
+        state_starts.append([1,0])
+        viz_starts.append([1,0])
+        
+        ## Idx 5
+        grid_maps.append(np.array([
+            [7,8,4],
+            [3,5,6],
+            [0,1,2]]))
+        state_starts.append([1,0])
+        viz_starts.append([1,0])
+        
+        ## Idx 6 (pairs with 4)
+        grid_maps.append(np.array([
+            [1,1,2,2,4,4],
+            [1,1,2,2,4,4],
+            [2,2,3,3,1,1],
+            [2,2,3,3,1,1],
+            [0,0,1,1,3,3],
+            [0,0,1,1,3,3]]))
+        state_starts.append([1,0])
+        viz_starts.append([1,0])
         return grid_maps, state_starts, viz_starts
 
     @classmethod

@@ -28,10 +28,23 @@ if __name__ == "__main__":
     #          'traj': ('F.R./Cur Human Choice', 'gold'),
     #          'baseline': ('Baseline', 'cyan')}
     #exps = ["action", "scalar", "human_choice", "full", "traj", "baseline"]
-    labels = {'raw': ('Raw Policy Advantage', 'C0'),
-              'affine': ('Affine Policy Advantage', 'C1'),
-              'multi_raw': ('Multi-Update Raw Policy Advantage', 'C2'),
-              'multi_affine': ('Multi-Update Affine Policy Advantage', 'C3')}
-    exps = ["raw","affine","multi_raw","multi_affine"]
+    color_list = ['C2', 'C0', 'C4', 'C6', 'C1', 'C3', 'C5']
+    labels = {'0': ('1.0 E, 0.0 A', 'C2'),
+              '1': ('0.9 E, 0.1 A', 'C0'),
+              '2': ('0.7 E, 0.3 A', 'C4'),
+              '3': ('0.5 E, 0.5 A', 'C6'),
+              '4': ('0.3 E, 0.7 A', 'C1'),
+              '5': ('0.1 E, 0.9 A', 'C3'),
+              '6': ('0.0 E, 1.0 A', 'C5')}
+    exps = ['0','1','2','3','4','5','6']
+    color_list = ['C2', 'C0', 'C4', 'C6', 'C1', 'C3', 'C5']
+    labels = {'0': ('0', '#6bd0f3'),
+              '1': ('1', '#077ccc'),
+              '2': ('2', '#075791'),
+              '3': ('3', '#AA0000'),
+              '4': ('4', 'black'),
+              '5': ('', 'white'),
+              '6': ('', 'white')}
+    exps = ['0','1','2','3','4','5','6']
 
-    export_legend(labels, exps, "legend.pdf")
+    export_legend(labels, exps, "reward_legend.pdf")
